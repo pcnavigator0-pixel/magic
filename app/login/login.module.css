@@ -76,10 +76,43 @@
 }
 
 .heading {
-  margin-bottom: 25px;
+  margin-bottom: 10px;
   font-size: 24px;
   font-weight: 800;
   letter-spacing: 0;
+}
+
+.subheading {
+  margin-bottom: 25px;
+  color: #a0aab2;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.roleGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.roleButton {
+  min-height: 46px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: #1a222b;
+  color: #a0aab2;
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+
+.selectedRole {
+  border-color: #e64a19;
+  background: rgba(230, 74, 25, 0.14);
+  color: #ffffff;
 }
 
 .formGroup {
@@ -151,6 +184,31 @@
 
 .submit:hover {
   background-color: #d84315;
+}
+
+.submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.message {
+  margin: -8px 0 20px;
+  border-radius: 8px;
+  color: #ffffff;
+  padding: 12px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.success {
+  border: 1px solid rgba(74, 222, 128, 0.38);
+  background: rgba(22, 163, 74, 0.18);
+}
+
+.error {
+  border: 1px solid rgba(230, 74, 25, 0.35);
+  background: rgba(230, 74, 25, 0.12);
 }
 
 .backHome {

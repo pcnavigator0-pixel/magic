@@ -3,31 +3,56 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { FormEvent, useEffect, useState } from "react";
+import { EventCountdown } from "@/app/components/event-countdown";
 import {
   createSlug,
-  daysUntil,
+  deleteEvent,
+  deleteMatch,
+  deleteNewsPost,
+  deletePlayer,
+  deleteShopProduct,
   fallbackMagicData,
   formatDisplayDate,
+  getCoachProfileForUser,
   getMagicData,
+  insertCoachProfile,
   insertEvent,
   insertMatch,
   insertNewsPost,
   insertPlayer,
+  insertShopProduct,
   updateCoachProfile,
+  updateEvent,
+  updateMatch,
+  updateNewsPost,
+  updatePlayer,
+  updateShopProduct,
+  type EventItem,
   type MagicData,
+  type Match,
+  type NewsPost,
+  type Player,
+  type ShopProduct,
 } from "@/lib/magic-data";
+import { formatImageUrlsForStorage, parseImageUrls } from "@/lib/news-images";
+import { clearPortalSession, getFreshPortalSession, getStoredPortalSession, type PortalSession } from "@/lib/portal-auth";
 import styles from "./coach-dashboard.module.css";
 
 const panels = [
-  { id: "events", label: "Post New Events", icon: "fa-calendar-plus" },
-  { id: "matches", label: "Record Matches", icon: "fa-chart-line" },
-  { id: "players", label: "Add Player Profile", icon: "fa-person-running" },
-  { id: "news", label: "Publish News", icon: "fa-newspaper" },
+  { id: "events", label: "New Events", icon: "fa-calendar-plus" },
+  { id: "matches", label: "Matches", icon: "fa-chart-line" },
+  { id: "players", label: "Players", icon: "fa-person-running" },
+  { id: "news", label: "News", icon: "fa-newspaper" },
+  { id: "products", label: "Shop Products", icon: "fa-shirt" },
   { id: "history", label: "Match Logs", icon: "fa-clipboard-list" },
   { id: "settings", label: "Settings", icon: "fa-gear" },
 ] as const;
 
 type PanelId = (typeof panels)[number]["id"];
+type CollectionKey = "events" | "matches" | "players" | "news" | "products";
+const uploadBucket = "magic-uploads";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export default function CoachDashboardPage() {
   const [activePanel, setActivePanel] = useState<PanelId>("events");
@@ -36,38 +61,70 @@ export default function CoachDashboardPage() {
   const [clubName, setClubName] = useState("");
   const [dashboardData, setDashboardData] = useState<MagicData>(fallbackMagicData);
   const [formError, setFormError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [showEventForm, setShowEventForm] = useState(false);
+  const [showMatchForm, setShowMatchForm] = useState(false);
+  const [showPlayerForm, setShowPlayerForm] = useState(false);
+  const [showNewsForm, setShowNewsForm] = useState(false);
+  const [showProductForm, setShowProductForm] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<EventItem | null>(null);
+  const [editingMatch, setEditingMatch] = useState<Match | null>(null);
+  const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
+  const [editingNews, setEditingNews] = useState<NewsPost | null>(null);
+  const [editingProduct, setEditingProduct] = useState<ShopProduct | null>(null);
   const wins = dashboardData.matches.filter((match) => match.home_score >= match.away_score && match.status === "final").length;
   const losses = dashboardData.matches.filter((match) => match.home_score < match.away_score && match.status === "final").length;
-  const nextEvent = dashboardData.events[0];
+  const featuredProducts = dashboardData.products.filter((product) => product.is_featured).length;
 
-  function applyDashboardData(data: MagicData) {
-    setDashboardData(data);
-    if (data.coachProfile) {
-      setCoachName(data.coachProfile.full_name);
-      setCoachRole(data.coachProfile.role);
-      setClubName(data.coachProfile.club_name);
+  useEffect(() => {
+    document.body.classList.toggle("drawer-open", isMobileMenuOpen);
+    return () => document.body.classList.remove("drawer-open");
+  }, [isMobileMenuOpen]);
+
+  useEffect(() => {
+    const session = getStoredPortalSession();
+
+    if (!session) {
+      window.location.href = "/login";
+      return;
     }
+
+    if (session.profile.role !== "coach") {
+      window.location.href = "/player-dashboard";
+      return;
+    }
+
+    loadDashboard(session);
+  }, []);
+
+  function applyDashboardData(data: MagicData, session?: PortalSession) {
+    const profile = data.coachProfile;
+    setDashboardData(data);
+    setCoachName(profile?.full_name || session?.profile.full_name || "Coach");
+    setCoachRole(profile?.role || "Coach");
+    setClubName(profile?.club_name || "MAGIC BBC");
   }
 
   async function refreshDashboard() {
-    const data = await getMagicData();
-    applyDashboardData(data);
+    const session = await requireFreshCoachSession();
+    await loadDashboard(session);
   }
 
-  useEffect(() => {
-    let ignore = false;
+  async function loadDashboard(session: PortalSession) {
+    const [data, coachProfile] = await Promise.all([
+      getMagicData(),
+      getCoachProfileForUser(session.user.id, session.access_token),
+    ]);
 
-    getMagicData().then((data) => {
-      if (!ignore) applyDashboardData(data);
-    });
-
-    return () => {
-      ignore = true;
-    };
-  }, []);
+    applyDashboardData({ ...data, coachProfile }, session);
+  }
 
   async function runDashboardAction(action: () => Promise<void>, successMessage: string) {
+    if (isSaving) return;
+
     setFormError("");
+    setIsSaving(true);
 
     try {
       await action();
@@ -76,6 +133,8 @@ export default function CoachDashboardPage() {
       const message = error instanceof Error ? error.message : "Unable to save this item.";
       setFormError(message);
       window.alert(message);
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -83,58 +142,85 @@ export default function CoachDashboardPage() {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const form = event.currentTarget;
+    const payload = {
+      title: String(data.get("title")),
+      category: String(data.get("category")),
+      event_date: String(data.get("eventDate")),
+      event_time: String(data.get("eventTime") || "") || null,
+      venue: String(data.get("venue")),
+      description: String(data.get("description") || "") || null,
+      is_published: true,
+    };
+
     await runDashboardAction(async () => {
-      await insertEvent({
-        title: String(data.get("title")),
-        category: String(data.get("category")),
-        event_date: String(data.get("eventDate")),
-        event_time: String(data.get("eventTime") || "") || null,
-        venue: String(data.get("venue")),
-        description: String(data.get("description") || "") || null,
-        is_published: true,
-      });
+      if (editingEvent) {
+        await updateEvent(editingEvent.id, payload);
+      } else {
+        await insertEvent(payload);
+      }
       await refreshDashboard();
+      setEditingEvent(null);
+      setShowEventForm(false);
       form.reset();
-    }, "Event saved to Supabase and published.");
+    }, editingEvent ? "Event updated in Supabase." : "Event saved to Supabase and published.");
   }
 
   async function handleMatchCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const form = event.currentTarget;
+    const payload = {
+      match_date: String(data.get("matchDate")),
+      opponent_name: String(data.get("opponentName")),
+      home_score: Number(data.get("homeScore") || 0),
+      away_score: Number(data.get("awayScore") || 0),
+      venue: String(data.get("venue") || "") || null,
+      league: String(data.get("league")),
+      mvp_name: String(data.get("mvpName") || "") || null,
+      status: "final" as const,
+    };
+
     await runDashboardAction(async () => {
-      await insertMatch({
-        match_date: String(data.get("matchDate")),
-        opponent_name: String(data.get("opponentName")),
-        home_score: Number(data.get("homeScore") || 0),
-        away_score: Number(data.get("awayScore") || 0),
-        venue: String(data.get("venue") || "") || null,
-        league: String(data.get("league")),
-        mvp_name: String(data.get("mvpName") || "") || null,
-        status: "final",
-      });
+      if (editingMatch) {
+        await updateMatch(editingMatch.id, payload);
+      } else {
+        await insertMatch(payload);
+      }
       await refreshDashboard();
+      setEditingMatch(null);
+      setShowMatchForm(false);
       form.reset();
-    }, "Match saved to Supabase and standings updated.");
+    }, editingMatch ? "Match updated in Supabase." : "Match saved to Supabase and standings updated.");
   }
 
   async function handlePlayerCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const form = event.currentTarget;
+
     await runDashboardAction(async () => {
-      await insertPlayer({
+      const session = await requireFreshCoachSession();
+      const uploadedPhotoUrl = await uploadPhotoFile(data.get("playerPhoto"), "players", session?.access_token);
+      const payload = {
         full_name: String(data.get("fullName")),
         jersey_number: Number(data.get("jerseyNumber") || 0),
         position: String(data.get("position")),
         height: String(data.get("height") || "") || null,
         bio: String(data.get("bio") || "") || null,
-        photo_url: String(data.get("photoUrl") || "") || null,
-        status: "active",
-      });
+        photo_url: uploadedPhotoUrl || String(data.get("photoUrl") || "") || null,
+        status: "active" as const,
+      };
+
+      if (editingPlayer) {
+        await updatePlayer(editingPlayer.id, payload);
+      } else {
+        await insertPlayer(payload);
+      }
       await refreshDashboard();
+      setEditingPlayer(null);
+      setShowPlayerForm(false);
       form.reset();
-    }, "Player saved to Supabase and added to the roster.");
+    }, editingPlayer ? "Player profile updated in Supabase." : "Player saved to Supabase and added to the roster.");
   }
 
   async function handleNewsCreate(event: FormEvent<HTMLFormElement>) {
@@ -142,51 +228,179 @@ export default function CoachDashboardPage() {
     const data = new FormData(event.currentTarget);
     const title = String(data.get("newsTitle"));
     const form = event.currentTarget;
+
     await runDashboardAction(async () => {
-      await insertNewsPost({
+      const session = await requireFreshCoachSession();
+      const uploadedImageUrls = await uploadPhotoFiles(data.getAll("newsImages"), "news", session?.access_token);
+      const manualImageUrls = parseImageUrls(String(data.get("imageUrl") || ""));
+      const payload = {
         title,
         slug: createSlug(title),
         category: String(data.get("newsCategory")),
         excerpt: String(data.get("excerpt") || "") || null,
         content: String(data.get("content") || "") || null,
-        image_url: String(data.get("imageUrl") || "") || null,
-        published_at: new Date().toISOString(),
+        image_url: formatImageUrlsForStorage([...uploadedImageUrls, ...manualImageUrls]),
+        published_at: editingNews?.published_at || new Date().toISOString(),
         is_published: true,
-      });
+      };
+
+      if (editingNews) {
+        await updateNewsPost(editingNews.id, payload);
+      } else {
+        await insertNewsPost(payload);
+      }
       await refreshDashboard();
+      setEditingNews(null);
+      setShowNewsForm(false);
       form.reset();
-    }, "News post saved to Supabase and published.");
+    }, editingNews ? "News post updated in Supabase." : "News post saved to Supabase and published.");
+  }
+
+  async function handleProductCreate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    const name = String(data.get("productName")).trim();
+    const price = Number(data.get("price") || 0);
+    const form = event.currentTarget;
+
+    await runDashboardAction(async () => {
+      const session = await requireFreshCoachSession();
+      const uploadedImageUrl = await uploadPhotoFile(data.get("productImage"), "products", session?.access_token);
+      const payload = {
+        name,
+        slug: createSlug(name),
+        category: String(data.get("productCategory") || "Merchandise"),
+        description: String(data.get("description") || "") || null,
+        price_cents: Math.round(price * 100),
+        currency: String(data.get("currency") || "RWF"),
+        image_url: uploadedImageUrl || String(data.get("imageUrl") || "") || null,
+        inventory_count: Number(data.get("inventoryCount") || 0),
+        is_featured: data.get("isFeatured") === "on",
+        is_published: true,
+      };
+      const savedProducts = editingProduct
+        ? await updateShopProduct(editingProduct.id, payload, session?.access_token)
+        : await insertShopProduct(payload, session?.access_token);
+      const savedProduct = savedProducts[0];
+
+      if (savedProduct) {
+        setDashboardData((current) => ({
+          ...current,
+          products: editingProduct
+            ? current.products.map((product) => product.id === savedProduct.id ? savedProduct : product)
+            : [savedProduct, ...current.products],
+        }));
+      }
+
+      try {
+        await refreshDashboard();
+      } catch {
+        // The product table already reflects the successful write.
+      }
+
+      if (editingProduct) {
+        setEditingProduct(null);
+      }
+      setShowProductForm(false);
+      form.reset();
+    }, editingProduct ? "Product updated in Supabase." : "Product saved to Supabase and published in the shop.");
   }
 
   async function handleProfileUpdate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const profile = dashboardData.coachProfile;
-    const payload = {
-      full_name: String(data.get("coachName") || coachName),
-      role: String(data.get("coachRole") || coachRole),
-      club_name: String(data.get("clubName") || clubName),
-      email: String(data.get("email") || "") || null,
-      phone: String(data.get("phone") || "") || null,
-      training_base: String(data.get("base") || "") || null,
-      bio: String(data.get("bio") || "") || null,
-      avatar_url: String(data.get("avatarUrl") || "") || null,
-    };
 
     await runDashboardAction(async () => {
-      if (!profile) throw new Error("No coach profile exists in the database to update.");
-      await updateCoachProfile(profile.id, payload);
+      const session = await requireFreshCoachSession();
+      const uploadedAvatarUrl = await uploadPhotoFile(data.get("avatarFile"), "avatars", session?.access_token);
+      const payload = {
+        full_name: String(data.get("coachName") || coachName),
+        role: String(data.get("coachRole") || coachRole),
+        club_name: String(data.get("clubName") || clubName),
+        email: String(data.get("email") || "") || null,
+        phone: String(data.get("phone") || "") || null,
+        training_base: String(data.get("base") || "") || null,
+        bio: String(data.get("bio") || "") || null,
+        avatar_url: uploadedAvatarUrl || String(data.get("avatarUrl") || "") || null,
+        auth_user_id: session.user.id,
+      };
+
+      if (profile) {
+        await updateCoachProfile(profile.id, payload, session.access_token);
+      } else {
+        await insertCoachProfile(payload, session.access_token);
+      }
       await refreshDashboard();
     }, "Profile settings saved to Supabase.");
   }
 
+  async function handleDelete(label: string, collection: CollectionKey, id: string, action: () => Promise<unknown>) {
+    if (!window.confirm(`Delete this ${label}? This cannot be undone.`)) return;
+
+    await runDashboardAction(async () => {
+      await action();
+      setDashboardData((current) => ({
+        ...current,
+        [collection]: current[collection].filter((item) => item.id !== id),
+      }));
+
+      try {
+        await refreshDashboard();
+      } catch {
+        // The local table is already updated; a later dashboard refresh can retry the network read.
+      }
+    }, `${label.charAt(0).toUpperCase()}${label.slice(1)} deleted from Supabase.`);
+  }
+
+  function handleLogout() {
+    clearPortalSession();
+    window.location.href = "/login";
+  }
+
+  function selectPanel(panelId: PanelId) {
+    setActivePanel(panelId);
+    setIsMobileMenuOpen(false);
+  }
+
   return (
     <main className={styles.page}>
-      <aside className={styles.sidebar}>
+      <header className={styles.mobileHeader}>
+        <Link href="/" className={styles.mobileLogo} aria-label="MAGIC BBC home">
+          <span className={styles.ball}>BB</span>
+          <span className={styles.logoTitle}>MAGIC BBC</span>
+        </Link>
+
+        <div className={styles.mobileHeaderActions}>
+          <Link href="/" className={styles.mobileHeaderLink}>Website</Link>
+          <button
+            className={styles.mobileIconButton}
+            type="button"
+            aria-label="Open dashboard menu"
+            aria-expanded={isMobileMenuOpen}
+            onClick={() => setIsMobileMenuOpen(true)}
+          >
+            <i className="fa-solid fa-grip" aria-hidden="true" />
+          </button>
+        </div>
+      </header>
+
+      {isMobileMenuOpen && (
+        <div className={styles.mobileMenuLayer} role="presentation" onMouseDown={() => setIsMobileMenuOpen(false)} />
+      )}
+
+      <aside className={`${styles.sidebar} ${isMobileMenuOpen ? styles.sidebarOpen : ""}`}>
         <Link href="/" className={styles.logo} aria-label="MAGIC BBC home">
           <span className={styles.ball}>🏀</span>
           <span className={styles.logoTitle}>MAGIC BBC</span>
         </Link>
+
+        <div className={styles.mobileDrawerHead}>
+          <span>Control Menu</span>
+          <button type="button" aria-label="Close dashboard menu" onClick={() => setIsMobileMenuOpen(false)}>
+            <i className="fa-solid fa-xmark" aria-hidden="true" />
+          </button>
+        </div>
 
         <span className={styles.menuTitle}>Management Engine</span>
         <ul className={styles.navList}>
@@ -195,7 +409,7 @@ export default function CoachDashboardPage() {
               <button
                 type="button"
                 className={`${styles.tabLink} ${activePanel === panel.id ? styles.activeTab : ""}`}
-                onClick={() => setActivePanel(panel.id)}
+                onClick={() => selectPanel(panel.id)}
               >
                 <i className={`fa-solid ${panel.icon}`} aria-hidden="true" />
                 {panel.label}
@@ -206,6 +420,7 @@ export default function CoachDashboardPage() {
 
         <div className={styles.sidebarFooter}>
           <p>Access level: {coachRole}</p>
+          <button type="button" className={styles.logoutButton} onClick={handleLogout}>Sign Out</button>
           <p className={styles.systemVersion}>System Version 2026.1</p>
         </div>
       </aside>
@@ -237,62 +452,139 @@ export default function CoachDashboardPage() {
           <div className={styles.analyticCard}><span>Total Wins</span><h3>{wins}</h3></div>
           <div className={styles.analyticCard}><span>Loss Record</span><h3>{losses}</h3></div>
           <div className={styles.analyticCard}><span>Active Roster</span><h3>{dashboardData.players.length}</h3></div>
-          <div className={styles.analyticCard}><span>Next Event</span><h3>{nextEvent ? `${daysUntil(nextEvent.event_date)} Days` : "None"}</h3></div>
+          <div className={styles.analyticCard}><span>Shop Products</span><h3>{dashboardData.products.length}</h3><p>{featuredProducts} featured</p></div>
         </section>
 
         <section className={`${styles.panel} ${activePanel === "events" ? styles.activePanel : ""}`}>
-          <h2 className={styles.panelHeading}>Schedule & Post New Event</h2>
-          <form onSubmit={handleEventCreate}>
-            <div className={styles.formGrid}>
-              <InputBox label="Event Headline Title"><input name="title" type="text" placeholder="Eastern Conference Finals Warm-up" required /></InputBox>
+          <PanelHeader
+            title="New Events"
+            buttonLabel="Add New Event"
+            onButtonClick={() => {
+              setEditingEvent(null);
+              setShowEventForm(true);
+            }}
+          />
+
+          {showEventForm && (
+            <form onSubmit={handleEventCreate} key={editingEvent?.id || "new-event"} className={styles.editorForm}>
+              <div className={styles.formGrid}>
+              <InputBox label="Event Headline Title"><input name="title" type="text" placeholder="Eastern Conference Finals Warm-up" defaultValue={editingEvent?.title || ""} required /></InputBox>
               <InputBox label="Event Category Type">
-                <select name="category" defaultValue="Premier League Match">
+                <select name="category" defaultValue={editingEvent?.category || "Premier League Match"}>
                   <option>Premier League Match</option>
                   <option>Charity Cup Tournament</option>
                   <option>Fan Meet & Greet Session</option>
                   <option>Open Press Practice</option>
                 </select>
               </InputBox>
-              <InputBox label="Calendar Date"><input name="eventDate" type="date" required /></InputBox>
-              <InputBox label="Tip-off Time"><input name="eventTime" type="time" required /></InputBox>
-              <InputBox label="Arena Venue Location"><input name="venue" type="text" placeholder="BK Arena, Court A" required /></InputBox>
-              <InputBox label="Event Description" full><textarea name="description" rows={4} placeholder="Short event details for fans..." /></InputBox>
+              <InputBox label="Calendar Date"><input name="eventDate" type="date" defaultValue={editingEvent?.event_date || ""} required /></InputBox>
+              <InputBox label="Tip-off Time"><input name="eventTime" type="time" defaultValue={editingEvent?.event_time || ""} required /></InputBox>
+              <InputBox label="Arena Venue Location"><input name="venue" type="text" placeholder="BK Arena, Court A" defaultValue={editingEvent?.venue || ""} required /></InputBox>
+              <InputBox label="Event Description" full><textarea name="description" rows={4} placeholder="Short event details for fans..." defaultValue={editingEvent?.description || ""} /></InputBox>
             </div>
-            <div className={styles.actionBar}><button type="submit" className={styles.primaryButton}>Publish Event</button></div>
+            <div className={styles.actionBar}>
+              <button type="button" className={styles.secondaryButton} onClick={() => { setShowEventForm(false); setEditingEvent(null); }}>Cancel</button>
+              <button type="submit" className={styles.primaryButton} disabled={isSaving}>{editingEvent ? "Update Event" : "Publish Event"}</button>
+            </div>
           </form>
+          )}
+
+          <div className={styles.tableScroll}>
+            <table className={styles.dataTable}>
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Category</th>
+                  <th>Date</th>
+                  <th>Venue</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dashboardData.events.map((eventItem) => (
+                  <tr key={eventItem.id}>
+                    <td>{eventItem.title}</td>
+                    <td>{eventItem.category}</td>
+                    <td>
+                      {formatDisplayDate(eventItem.event_date)}
+                      <EventCountdown eventDate={eventItem.event_date} eventTime={eventItem.event_time} compact />
+                    </td>
+                    <td>{eventItem.venue}</td>
+                    <td>
+                      <RowActions
+                        onEdit={() => { setEditingEvent(eventItem); setShowEventForm(true); }}
+                        onDelete={() => handleDelete("event", "events", eventItem.id, () => deleteEvent(eventItem.id))}
+                      />
+                    </td>
+                  </tr>
+                ))}
+                {dashboardData.events.length === 0 && (
+                  <tr><td colSpan={5}>No events have been published yet.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </section>
 
         <section className={`${styles.panel} ${activePanel === "matches" ? styles.activePanel : ""}`}>
-          <h2 className={styles.panelHeading}>Record Match Results</h2>
-          <form onSubmit={handleMatchCreate}>
+          <PanelHeader
+            title="Matches"
+            buttonLabel="Add Match"
+            onButtonClick={() => {
+              setEditingMatch(null);
+              setShowMatchForm(true);
+            }}
+          />
+
+          {showMatchForm && (
+          <form onSubmit={handleMatchCreate} key={editingMatch?.id || "new-match"} className={styles.editorForm}>
             <div className={styles.formGrid}>
-              <InputBox label="Opponent Club Name"><input name="opponentName" type="text" placeholder="Kigali Titans" required /></InputBox>
+              <InputBox label="Opponent Club Name"><input name="opponentName" type="text" placeholder="Kigali Titans" defaultValue={editingMatch?.opponent_name || ""} required /></InputBox>
               <InputBox label="League Match Context">
-                <select name="league" defaultValue="Premier League">
+                <select name="league" defaultValue={editingMatch?.league || "Premier League"}>
                   <option>Premier League</option>
                   <option>Regular Season</option>
                   <option>Playoffs</option>
                   <option>Pre-season Tournament</option>
                 </select>
               </InputBox>
-              <InputBox label="Match Date"><input name="matchDate" type="date" required /></InputBox>
-              <InputBox label="Arena Venue"><input name="venue" type="text" placeholder="BK Arena" /></InputBox>
-              <InputBox label="MAGIC BBC Score"><input name="homeScore" type="number" placeholder="112" required /></InputBox>
-              <InputBox label="Opponent Score"><input name="awayScore" type="number" placeholder="104" required /></InputBox>
-              <InputBox label="Game MVP Player" full><input name="mvpName" type="text" placeholder="Aiden Foster" /></InputBox>
+              <InputBox label="Match Date"><input name="matchDate" type="date" defaultValue={editingMatch?.match_date || ""} required /></InputBox>
+              <InputBox label="Arena Venue"><input name="venue" type="text" placeholder="BK Arena" defaultValue={editingMatch?.venue || ""} /></InputBox>
+              <InputBox label="MAGIC BBC Score"><input name="homeScore" type="number" placeholder="112" defaultValue={editingMatch?.home_score ?? ""} required /></InputBox>
+              <InputBox label="Opponent Score"><input name="awayScore" type="number" placeholder="104" defaultValue={editingMatch?.away_score ?? ""} required /></InputBox>
+              <InputBox label="Game MVP Player" full><input name="mvpName" type="text" placeholder="Aiden Foster" defaultValue={editingMatch?.mvp_name || ""} /></InputBox>
             </div>
-            <div className={styles.actionBar}><button type="submit" className={styles.primaryButton}>Commit Match Scores</button></div>
+            <div className={styles.actionBar}>
+              <button type="button" className={styles.secondaryButton} onClick={() => { setShowMatchForm(false); setEditingMatch(null); }}>Cancel</button>
+              <button type="submit" className={styles.primaryButton} disabled={isSaving}>{editingMatch ? "Update Match" : "Commit Match Scores"}</button>
+            </div>
           </form>
+          )}
+
+          <EditableMatchesTable
+            matches={dashboardData.matches}
+            onEdit={(match) => { setEditingMatch(match); setShowMatchForm(true); }}
+            onDelete={(match) => handleDelete("match", "matches", match.id, () => deleteMatch(match.id))}
+          />
         </section>
 
         <section className={`${styles.panel} ${activePanel === "players" ? styles.activePanel : ""}`}>
-          <h2 className={styles.panelHeading}>Add Roster Player Details</h2>
-          <form onSubmit={handlePlayerCreate}>
+          <PanelHeader
+            title="Players"
+            buttonLabel="Add Player"
+            onButtonClick={() => {
+              setEditingPlayer(null);
+              setShowPlayerForm(true);
+            }}
+          />
+
+          {showPlayerForm && (
+          <form onSubmit={handlePlayerCreate} key={editingPlayer?.id || "new-player"} className={styles.editorForm}>
             <div className={styles.formGrid}>
-              <InputBox label="Full Player Name"><input name="fullName" type="text" placeholder="Jayson Tatum" required /></InputBox>
-              <InputBox label="Jersey Number Allocation"><input name="jerseyNumber" type="number" placeholder="0" max="99" required /></InputBox>
+              <InputBox label="Full Player Name"><input name="fullName" type="text" placeholder="Jayson Tatum" defaultValue={editingPlayer?.full_name || ""} required /></InputBox>
+              <InputBox label="Jersey Number Allocation"><input name="jerseyNumber" type="number" placeholder="0" max="99" defaultValue={editingPlayer?.jersey_number ?? ""} required /></InputBox>
               <InputBox label="Court Position Role">
-                <select name="position" defaultValue="Point Guard (PG)">
+                <select name="position" defaultValue={editingPlayer?.position || "Point Guard (PG)"}>
                   <option>Point Guard (PG)</option>
                   <option>Shooting Guard (SG)</option>
                   <option>Small Forward (SF)</option>
@@ -300,28 +592,199 @@ export default function CoachDashboardPage() {
                   <option>Center (C)</option>
                 </select>
               </InputBox>
-              <InputBox label="Height Metric Profile"><input name="height" type="text" placeholder={"6'8\""} /></InputBox>
-              <InputBox label="Photo URL"><input name="photoUrl" type="url" placeholder="https://..." /></InputBox>
+              <InputBox label="Height Metric Profile"><input name="height" type="text" placeholder={"6'8\""} defaultValue={editingPlayer?.height || ""} /></InputBox>
+              <InputBox label="Photo URL"><input name="photoUrl" type="url" placeholder="https://..." defaultValue={editingPlayer?.photo_url || ""} /></InputBox>
+              <InputBox label="Upload Player Photo"><input name="playerPhoto" type="file" accept="image/jpeg,image/png,image/webp,image/gif" /></InputBox>
               <InputBox label="Biographical Scouting Summary Notes" full>
-                <textarea name="bio" rows={4} placeholder="Enter performance highlights or metrics information details..." />
+                <textarea name="bio" rows={4} placeholder="Enter performance highlights or metrics information details..." defaultValue={editingPlayer?.bio || ""} />
               </InputBox>
             </div>
-            <div className={styles.actionBar}><button type="submit" className={styles.primaryButton}>Register Player Profile</button></div>
+            <div className={styles.actionBar}>
+              <button type="button" className={styles.secondaryButton} onClick={() => { setShowPlayerForm(false); setEditingPlayer(null); }}>Cancel</button>
+              <button type="submit" className={styles.primaryButton} disabled={isSaving}>{editingPlayer ? "Update Player" : "Register Player Profile"}</button>
+            </div>
           </form>
+          )}
+
+          <div className={styles.tableScroll}>
+            <table className={styles.dataTable}>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>No.</th>
+                  <th>Position</th>
+                  <th>Height</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dashboardData.players.map((player) => (
+                  <tr key={player.id}>
+                    <td>{player.full_name}</td>
+                    <td>{player.jersey_number}</td>
+                    <td>{player.position}</td>
+                    <td>{player.height || "-"}</td>
+                    <td>{player.status}</td>
+                    <td>
+                      <RowActions
+                        onEdit={() => { setEditingPlayer(player); setShowPlayerForm(true); }}
+                        onDelete={() => handleDelete("player", "players", player.id, () => deletePlayer(player.id))}
+                      />
+                    </td>
+                  </tr>
+                ))}
+                {dashboardData.players.length === 0 && (
+                  <tr><td colSpan={6}>No players have been added yet.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </section>
 
         <section className={`${styles.panel} ${activePanel === "news" ? styles.activePanel : ""}`}>
-          <h2 className={styles.panelHeading}>Publish Website News</h2>
-          <form onSubmit={handleNewsCreate}>
+          <PanelHeader
+            title="News"
+            buttonLabel="Publish News"
+            onButtonClick={() => {
+              setEditingNews(null);
+              setShowNewsForm(true);
+            }}
+          />
+
+          {showNewsForm && (
+          <form onSubmit={handleNewsCreate} key={editingNews?.id || "new-news"} className={styles.editorForm}>
             <div className={styles.formGrid}>
-              <InputBox label="News Title"><input name="newsTitle" type="text" placeholder="MAGIC BBC prepares for playoff push" required /></InputBox>
-              <InputBox label="Category"><input name="newsCategory" type="text" defaultValue="Club" required /></InputBox>
-              <InputBox label="Feature Image URL"><input name="imageUrl" type="text" placeholder="/photos/example.jpg or https://..." /></InputBox>
-              <InputBox label="Excerpt"><input name="excerpt" type="text" placeholder="Short summary for cards..." /></InputBox>
-              <InputBox label="Content" full><textarea name="content" rows={5} placeholder="Full article text..." /></InputBox>
+              <InputBox label="News Title"><input name="newsTitle" type="text" placeholder="MAGIC BBC prepares for playoff push" defaultValue={editingNews?.title || ""} required /></InputBox>
+              <InputBox label="Category"><input name="newsCategory" type="text" defaultValue={editingNews?.category || "Club"} required /></InputBox>
+              <InputBox label="Feature Image URLs"><input name="imageUrl" type="text" placeholder={'"https://...","https://..."'} defaultValue={editingNews?.image_url || ""} /></InputBox>
+              <InputBox label="Upload Feature Images"><input name="newsImages" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple /></InputBox>
+              <InputBox label="Excerpt"><input name="excerpt" type="text" placeholder="Short summary for cards..." defaultValue={editingNews?.excerpt || ""} /></InputBox>
+              <InputBox label="Content" full><textarea name="content" rows={5} placeholder="Full article text..." defaultValue={editingNews?.content || ""} /></InputBox>
             </div>
-            <div className={styles.actionBar}><button type="submit" className={styles.primaryButton}>Publish News</button></div>
+            <div className={styles.actionBar}>
+              <button type="button" className={styles.secondaryButton} onClick={() => { setShowNewsForm(false); setEditingNews(null); }}>Cancel</button>
+              <button type="submit" className={styles.primaryButton} disabled={isSaving}>{editingNews ? "Update News" : "Publish News"}</button>
+            </div>
           </form>
+          )}
+
+          <div className={styles.tableScroll}>
+            <table className={styles.dataTable}>
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Category</th>
+                  <th>Published</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dashboardData.news.map((post) => (
+                  <tr key={post.id}>
+                    <td>{post.title}</td>
+                    <td>{post.category}</td>
+                    <td>{formatDisplayDate(post.published_at)}</td>
+                    <td>{post.is_published ? "Published" : "Draft"}</td>
+                    <td>
+                      <RowActions
+                        onEdit={() => { setEditingNews(post); setShowNewsForm(true); }}
+                        onDelete={() => handleDelete("news post", "news", post.id, () => deleteNewsPost(post.id))}
+                      />
+                    </td>
+                  </tr>
+                ))}
+                {dashboardData.news.length === 0 && (
+                  <tr><td colSpan={5}>No news has been published yet.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className={`${styles.panel} ${activePanel === "products" ? styles.activePanel : ""}`}>
+          <PanelHeader
+            title="Shop Products"
+            buttonLabel="Add Product"
+            onButtonClick={() => {
+              setEditingProduct(null);
+              setShowProductForm(true);
+            }}
+          />
+
+          {showProductForm && (
+          <form onSubmit={handleProductCreate} key={editingProduct?.id || "new-product"} className={styles.editorForm}>
+            <div className={styles.formGrid}>
+              <InputBox label="Product Name"><input name="productName" type="text" placeholder="MAGIC BBC Black T-Shirt" defaultValue={editingProduct?.name || ""} required /></InputBox>
+              <InputBox label="Category"><input name="productCategory" type="text" defaultValue={editingProduct?.category || "T-Shirts"} required /></InputBox>
+              <InputBox label="Price"><input name="price" type="number" min="0" step="1" placeholder="18000" defaultValue={editingProduct ? editingProduct.price_cents / 100 : ""} required /></InputBox>
+              <InputBox label="Currency">
+                <select name="currency" defaultValue={editingProduct?.currency || "RWF"}>
+                  <option>RWF</option>
+                  <option>USD</option>
+                </select>
+              </InputBox>
+              <InputBox label="Inventory Count"><input name="inventoryCount" type="number" min="0" placeholder="40" defaultValue={editingProduct?.inventory_count ?? ""} required /></InputBox>
+              <InputBox label="Image URL"><input name="imageUrl" type="url" placeholder="https://..." defaultValue={editingProduct?.image_url || ""} /></InputBox>
+              <InputBox label="Upload Image"><input name="productImage" type="file" accept="image/jpeg,image/png,image/webp,image/gif" /></InputBox>
+              <InputBox label="Description" full><textarea name="description" rows={4} placeholder="Short product details..." defaultValue={editingProduct?.description || ""} /></InputBox>
+              <label className={styles.checkboxBox}>
+                <input name="isFeatured" type="checkbox" defaultChecked={editingProduct?.is_featured || false} />
+                <span>Feature this product first in the shop</span>
+              </label>
+            </div>
+            <div className={styles.actionBar}>
+              <button type="button" className={styles.secondaryButton} onClick={() => { setShowProductForm(false); setEditingProduct(null); }}>Cancel</button>
+              <button type="submit" className={styles.primaryButton} disabled={isSaving}>{editingProduct ? "Update Product" : "Publish Product"}</button>
+            </div>
+          </form>
+          )}
+
+          <div className={styles.tableSection}>
+            <h3>Published Products</h3>
+            <div className={styles.tableScroll}>
+              <table className={styles.dataTable}>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Price</th>
+                    <th>Stock</th>
+                    <th>Featured</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dashboardData.products.map((product) => (
+                    <tr key={product.id}>
+                      <td>{product.name}</td>
+                      <td>{product.category}</td>
+                      <td>{formatMoney(product.price_cents, product.currency)}</td>
+                      <td>{product.inventory_count}</td>
+                      <td>{product.is_featured ? "Yes" : "No"}</td>
+                      <td>
+                        <RowActions
+                          onEdit={() => { setEditingProduct(product); setShowProductForm(true); }}
+                          onDelete={() => {
+                            return handleDelete("product", "products", product.id, async () => {
+                              const session = await requireFreshCoachSession();
+                              return deleteShopProduct(product.id, session.access_token);
+                            });
+                          }}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                  {dashboardData.products.length === 0 && (
+                    <tr>
+                      <td colSpan={6}>No products have been published yet.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </section>
 
         <section className={`${styles.panel} ${activePanel === "history" ? styles.activePanel : ""}`}>
@@ -378,15 +841,164 @@ export default function CoachDashboardPage() {
               <InputBox label="Phone Number"><input name="phone" type="tel" defaultValue={dashboardData.coachProfile?.phone || ""} /></InputBox>
               <InputBox label="Training Base"><input name="base" type="text" defaultValue={dashboardData.coachProfile?.training_base || ""} /></InputBox>
               <InputBox label="Avatar URL"><input name="avatarUrl" type="url" defaultValue={dashboardData.coachProfile?.avatar_url || ""} /></InputBox>
+              <InputBox label="Upload Avatar"><input name="avatarFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif" /></InputBox>
               <InputBox label="Short Bio" full>
                 <textarea name="bio" rows={4} defaultValue={dashboardData.coachProfile?.bio || ""} />
               </InputBox>
             </div>
-            <div className={styles.actionBar}><button type="submit" className={styles.primaryButton}>Save Profile Settings</button></div>
+            <div className={styles.actionBar}><button type="submit" className={styles.primaryButton} disabled={isSaving}>Save Profile Settings</button></div>
           </form>
         </section>
       </section>
     </main>
+  );
+}
+
+function formatMoney(priceCents: number, currency: string) {
+  return new Intl.NumberFormat("en", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(priceCents / 100);
+}
+
+async function uploadPhotoFile(fileValue: FormDataEntryValue | null, folder: string, accessToken?: string) {
+  if (!(fileValue instanceof File) || fileValue.size === 0) return "";
+
+  if (!supabaseUrl || !supabaseKey || !accessToken) {
+    throw new Error("Sign in again before uploading a product image.");
+  }
+
+  const objectPath = `${folder}/${Date.now()}-${createSlug(fileValue.name.replace(/\.[^.]+$/, "")) || "upload"}${extensionFor(fileValue)}`;
+  const response = await fetch(`${supabaseUrl}/storage/v1/object/${uploadBucket}/${objectPath}`, {
+    method: "POST",
+    headers: {
+      apikey: supabaseKey,
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": fileValue.type || "application/octet-stream",
+      "x-upsert": "false",
+    },
+    body: fileValue,
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null) as { message?: string; error?: string } | null;
+    throw new Error(body?.message || body?.error || `Supabase upload failed: ${response.status}`);
+  }
+
+  return `${supabaseUrl}/storage/v1/object/public/${uploadBucket}/${objectPath}`;
+}
+
+async function uploadPhotoFiles(fileValues: FormDataEntryValue[], folder: string, accessToken?: string) {
+  const uploadedUrls: string[] = [];
+
+  for (const fileValue of fileValues) {
+    const uploadedUrl = await uploadPhotoFile(fileValue, folder, accessToken);
+    if (uploadedUrl) uploadedUrls.push(uploadedUrl);
+  }
+
+  return uploadedUrls;
+}
+
+function extensionFor(file: File) {
+  const extension = file.name.match(/\.[a-z0-9]+$/i)?.[0]?.toLowerCase();
+  if (extension && [".jpg", ".jpeg", ".png", ".webp", ".gif"].includes(extension)) {
+    return extension === ".jpeg" ? ".jpg" : extension;
+  }
+
+  const mimeExtension = file.type.split("/")[1];
+  return mimeExtension ? `.${mimeExtension}` : ".jpg";
+}
+
+async function requireFreshCoachSession() {
+  const session = await getFreshPortalSession();
+
+  if (!session) {
+    window.location.href = "/login";
+    throw new Error("Your session expired. Please sign in again.");
+  }
+
+  if (session.profile.role !== "coach") {
+    window.location.href = "/player-dashboard";
+    throw new Error("Only coaches can manage this dashboard.");
+  }
+
+  return session;
+}
+
+function PanelHeader({
+  title,
+  buttonLabel,
+  onButtonClick,
+}: {
+  title: string;
+  buttonLabel: string;
+  onButtonClick: () => void;
+}) {
+  return (
+    <div className={styles.panelHeader}>
+      <button type="button" className={styles.primaryButton} onClick={onButtonClick}>
+        {buttonLabel}
+      </button>
+      <h2 className={styles.panelHeading}>{title}</h2>
+    </div>
+  );
+}
+
+function RowActions({
+  onEdit,
+  onDelete,
+}: {
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div className={styles.rowActions}>
+      <button type="button" className={styles.tableButton} onClick={onEdit}>Edit</button>
+      <button type="button" className={styles.dangerButton} onClick={onDelete}>Delete</button>
+    </div>
+  );
+}
+
+function EditableMatchesTable({
+  matches,
+  onEdit,
+  onDelete,
+}: {
+  matches: Match[];
+  onEdit: (match: Match) => void;
+  onDelete: (match: Match) => void;
+}) {
+  return (
+    <div className={styles.tableScroll}>
+      <table className={styles.dataTable}>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Opponent</th>
+            <th>Score</th>
+            <th>League</th>
+            <th>MVP</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {matches.map((match) => (
+            <tr key={match.id}>
+              <td>{formatDisplayDate(match.match_date)}</td>
+              <td>{match.opponent_name || "-"}</td>
+              <td>{match.home_score} - {match.away_score}</td>
+              <td>{match.league}</td>
+              <td>{match.mvp_name || "-"}</td>
+              <td><RowActions onEdit={() => onEdit(match)} onDelete={() => onDelete(match)} /></td>
+            </tr>
+          ))}
+          {matches.length === 0 && (
+            <tr><td colSpan={6}>No matches have been added yet.</td></tr>
+          )}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

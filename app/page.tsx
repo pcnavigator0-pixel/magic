@@ -1,23 +1,26 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { EventCountdown } from "@/app/components/event-countdown";
+import { NewsImageCarousel } from "@/app/components/news-image-carousel";
+import { SiteHeader } from "@/app/components/site-header";
 import {
+  buildStandings,
   fallbackMagicData,
   formatDisplayDate,
   getMagicData,
   type MagicData,
-  type Match,
 } from "@/lib/magic-data";
+
+const metricTargets = [90, 2548, 25, 256];
 
 export default function Home() {
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [metricsStarted, setMetricsStarted] = useState(false);
   const [metrics, setMetrics] = useState([0, 0, 0, 0]);
   const [siteData, setSiteData] = useState<MagicData>(fallbackMagicData);
-  const dropdownRef = useRef<HTMLLIElement>(null);
   const metricsRef = useRef<HTMLElement>(null);
-  const targets = [90, 2548, 25, 256];
   const featuredNews = siteData.news[0];
   const miniNews = siteData.news.slice(1, 4);
   const latestMatches = siteData.matches.slice(0, 4);
@@ -44,17 +47,6 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const closeDropdown = (event: MouseEvent) => {
-      if (!dropdownRef.current?.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener("click", closeDropdown);
-    return () => document.removeEventListener("click", closeDropdown);
-  }, []);
-
-  useEffect(() => {
     if (!metricsRef.current) return;
 
     const observer = new IntersectionObserver(
@@ -77,12 +69,12 @@ export default function Home() {
     const timer = window.setInterval(() => {
       setMetrics((current) => {
         const next = current.map((value, index) => {
-          const target = targets[index];
+          const target = metricTargets[index];
           const increment = Math.ceil(target / 80);
           return Math.min(value + increment, target);
         });
 
-        if (next.every((value, index) => value === targets[index])) {
+        if (next.every((value, index) => value === metricTargets[index])) {
           window.clearInterval(timer);
         }
 
@@ -97,56 +89,7 @@ export default function Home() {
 
   return (
     <>
-      <header id="mainHeader" className={isScrolled ? "scrolled" : ""}>
-        <div className="logo-container">
-          <div className="logo-badge">
-            <span className="ball">🏀</span>
-            <span className="title">MAGIC BBC</span>
-          </div>
-        </div>
-
-        <nav>
-          <ul>
-            <li className="active"><a href="#home">Home</a></li>
-            <li><a href="#pages">Pages</a></li>
-            <li><a href="#sportspress">Sportspress</a></li>
-            <li className="dropdown" id="eventsDropdown" ref={dropdownRef}>
-              <a
-                href="#events"
-                className="dropdown-toggle"
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  setIsDropdownOpen((open) => !open);
-                }}
-              >
-                Events
-              </a>
-              <ul className={`dropdown-menu ${isDropdownOpen ? "show" : ""}`}>
-                <li><a href="#events-list">Events List</a></li>
-                <li><a href="#events-month">Events Month</a></li>
-                <li><a href="#single-event">Single Event</a></li>
-              </ul>
-            </li>
-            <li><a href="#blog">Blog</a></li>
-            <li><a href="#shop">Shop</a></li>
-            <li><a href="/login">Portal</a></li>
-          </ul>
-        </nav>
-
-        <div className="header-utilities">
-          <button className="icon-btn" aria-label="Cart">
-            <i className="fa-solid fa-cart-shopping" aria-hidden="true" />
-            <span className="cart-badge">0</span>
-          </button>
-          <button className="icon-btn" aria-label="Search">
-            <i className="fa-solid fa-magnifying-glass" aria-hidden="true" />
-          </button>
-          <button className="icon-btn" aria-label="Menu">
-            <i className="fa-solid fa-grip" aria-hidden="true" />
-          </button>
-        </div>
-      </header>
+      <SiteHeader />
 
       <div className="hero-container" id="home">
         <main className="hero-main">
@@ -156,14 +99,14 @@ export default function Home() {
             <p className="hero-description">
               Consectetur adipiscing elit, sed do eiusmod tempor incididunt dolore magna aliqua.
             </p>
-            <button className="btn-primary">Read More</button>
+            <a className="btn-primary" href="/news">Read More</a>
           </div>
 
           {featuredNews && <div className="hero-right">
             <div className="recent-post-card">
               <span className="card-label">Recent post</span>
               {featuredNews.image_url && <div className="card-img-wrapper">
-                <img src={featuredNews.image_url} alt={featuredNews.title} />
+                <NewsImageCarousel imageValue={featuredNews.image_url} alt={featuredNews.title} autoAdvanceMs={3400} />
               </div>}
               <div className="meta-data">
                 <span className="meta-trending">{featuredNews.category}</span>
@@ -201,6 +144,7 @@ export default function Home() {
             />
           ))}
         </div>
+        <a className="section-more" href="/matches">View more matches</a>
       </section>
 
       {featuredNews && <section className="articles-section">
@@ -209,7 +153,14 @@ export default function Home() {
 
         <div className="articles-container">
           <div className="article-featured">
-            {featuredNews.image_url && <img className="main-img" src={featuredNews.image_url} alt={featuredNews.title} />}
+            {featuredNews.image_url && (
+              <NewsImageCarousel
+                imageValue={featuredNews.image_url}
+                alt={featuredNews.title}
+                className="main-img article-featured-carousel"
+                autoAdvanceMs={3400}
+              />
+            )}
             <div>
               <span className="badge-category">{featuredNews.category}</span>
               <h2>{featuredNews.title}</h2>
@@ -231,6 +182,7 @@ export default function Home() {
             ))}
           </div>
         </div>
+        <a className="section-more" href="/news">View more news</a>
       </section>}
 
       <section className="table-section">
@@ -264,7 +216,7 @@ export default function Home() {
             </tbody>
           </table>
         </div>
-        <button className="btn-outline">View Full Table</button>
+        <a className="btn-outline" href="/standings">View Full Table</a>
       </section>
 
       <section className="metrics-section" ref={metricsRef}>
@@ -298,6 +250,7 @@ export default function Home() {
             />
           ))}
         </div>
+        <a className="section-more section-more-dark" href="/roster">View more players</a>
       </section>
 
       <section className="news-section">
@@ -315,6 +268,24 @@ export default function Home() {
             />
           ))}
         </div>
+        <a className="section-more" href="/news">View all news</a>
+      </section>
+
+      <section className="events-preview-section">
+        <span className="section-label">Events</span>
+        <h2 className="section-title">Upcoming club events</h2>
+
+        <div className="events-preview-grid">
+          {siteData.events.slice(0, 3).map((event) => (
+            <div className="event-preview-card" key={event.id}>
+              <span>{formatDisplayDate(event.event_date)}</span>
+              <h3>{event.title}</h3>
+              <p>{event.venue}</p>
+              <EventCountdown eventDate={event.event_date} eventTime={event.event_time} />
+            </div>
+          ))}
+        </div>
+        <a className="section-more" href="/events">View more events</a>
       </section>
 
       <footer className="site-footer">
@@ -323,7 +294,7 @@ export default function Home() {
             <span>Stay in the game</span>
             <h2>Fresh scores, stories, and roster updates every week.</h2>
           </div>
-          <a href="#tickerSection">View latest scores</a>
+          <a href="/matches">View latest scores</a>
         </div>
 
         <div className="footer-top">
@@ -343,18 +314,18 @@ export default function Home() {
 
           <div className="footer-column">
             <h3>Explore</h3>
-            <a href="#home">Home</a>
-            <a href="#tickerSection">Scores</a>
-            <a href="#team">Standings</a>
-            <a href="#blog">Latest news</a>
+            <Link href="/">Home</Link>
+            <a href="/matches">Scores</a>
+            <a href="/standings">Standings</a>
+            <a href="/news">Latest news</a>
           </div>
 
           <div className="footer-column">
             <h3>Club</h3>
-            <a href="#events">Events</a>
-            <a href="#sportspress">SportsPress</a>
-            <a href="#pages">Roster</a>
-            <a href="#shop">Shop</a>
+            <a href="/events">Events</a>
+            <a href="/matches">SportsPress</a>
+            <a href="/roster">Roster</a>
+            <a href="/shop">Shop</a>
             <a href="/login">Portal Login</a>
           </div>
 
@@ -441,7 +412,7 @@ function TeamIcon({ color, variant }: { color: string; variant: TeamIconVariant 
 function MiniArticle({ image, alt, category, date, title }: { image: string | null; alt: string; category: string; date: string; title: string }) {
   return (
     <div className="mini-article-row">
-      {image && <img src={image} alt={alt} />}
+      {image && <NewsImageCarousel imageValue={image} alt={alt} autoAdvanceMs={3400} />}
       <div>
         <div className="mini-meta"><span>{category}</span> • {date}</div>
         <h3 className="mini-title">{title}</h3>
@@ -495,46 +466,10 @@ function PlayerCard({ number, name, position, image }: { number: string; name: s
 function NewsCard({ image, title, category, date }: { image: string | null; title: string; category: string; date: string }) {
   return (
     <div className="news-card">
-      {image && <img src={image} alt={`${title} Feature Image`} />}
+      {image && <NewsImageCarousel imageValue={image} alt={`${title} Feature Image`} autoAdvanceMs={3400} />}
       <span className="section-label news-card-label">{category}</span>
       <h3>{title}</h3>
       <div className="news-footer-meta">{date} • MAGIC BBC</div>
     </div>
   );
-}
-
-function buildStandings(matches: Match[]) {
-  const table = new Map<string, { team: string; played: number; wins: number; losses: number; points: number }>();
-
-  function ensure(team: string) {
-    if (!table.has(team)) {
-      table.set(team, { team, played: 0, wins: 0, losses: 0, points: 0 });
-    }
-
-    return table.get(team)!;
-  }
-
-  matches
-    .filter((match) => match.status === "final")
-    .forEach((match) => {
-      const magic = ensure("MAGIC BBC");
-      const opponent = match.opponent_name ? ensure(match.opponent_name) : null;
-
-      magic.played += 1;
-      if (opponent) opponent.played += 1;
-
-      if (match.home_score >= match.away_score) {
-        magic.wins += 1;
-        magic.points += 2;
-        if (opponent) opponent.losses += 1;
-      } else {
-        if (opponent) {
-          opponent.wins += 1;
-          opponent.points += 2;
-        }
-        magic.losses += 1;
-      }
-    });
-
-  return Array.from(table.values()).sort((a, b) => b.points - a.points || b.wins - a.wins || a.team.localeCompare(b.team));
 }

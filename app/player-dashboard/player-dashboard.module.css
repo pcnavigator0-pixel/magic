@@ -1,0 +1,289 @@
+.page {
+  min-height: 100vh;
+  background: #f4f6f7;
+  color: #111111;
+  font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 6%;
+  background: #0a0f14;
+  color: #ffffff;
+}
+
+.logo {
+  display: inline-block;
+  padding: 8px 16px;
+  border: 2px solid #e64a19;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #111111, #222222);
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(230, 74, 25, 0.3);
+}
+
+.ball {
+  display: block;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.title {
+  color: #ffffff;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.topActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.topActions a,
+.logoutButton {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+  padding: 10px 16px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.logoutButton {
+  border-color: rgba(230, 74, 25, 0.5);
+  background: #e64a19;
+}
+
+.workspace {
+  padding: 42px 6% 70px;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 28px;
+  align-items: stretch;
+  margin-bottom: 28px;
+}
+
+.welcomePanel,
+.profilePanel,
+.card,
+.widePanel {
+  border: 1px solid #e2e8ed;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.03);
+}
+
+.welcomePanel {
+  padding: 34px;
+  background:
+    linear-gradient(135deg, rgba(10, 15, 20, 0.92), rgba(10, 15, 20, 0.75)),
+    url("https://images.unsplash.com/photo-1519861531473-9200262188bf?q=80&w=1600") center/cover;
+  color: #ffffff;
+}
+
+.eyebrow {
+  display: block;
+  margin-bottom: 14px;
+  color: #ffb300;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+}
+
+.welcomePanel h1 {
+  max-width: 620px;
+  font-size: clamp(32px, 5vw, 58px);
+  line-height: 1.02;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.welcomePanel p {
+  max-width: 560px;
+  margin-top: 18px;
+  color: #c6d0da;
+  line-height: 1.7;
+}
+
+.profilePanel {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 22px;
+  padding: 24px;
+}
+
+.profilePhoto {
+  width: 160px;
+  height: 210px;
+  border-radius: 8px;
+  background: #1a222b;
+  object-fit: cover;
+}
+
+.profileEmpty {
+  display: grid;
+  place-items: center;
+  width: 160px;
+  height: 210px;
+  border-radius: 8px;
+  background: #1a222b;
+  color: #ffffff;
+  font-size: 42px;
+  font-weight: 900;
+}
+
+.profilePanel h2 {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.profilePanel p {
+  margin-top: 10px;
+  color: #6b7a87;
+  line-height: 1.6;
+}
+
+.profileStats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.profileStats span {
+  display: block;
+  color: #6b7a87;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.profileStats strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 20px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  margin-bottom: 28px;
+}
+
+.card {
+  padding: 24px;
+}
+
+.card span,
+.widePanel span {
+  color: #6b7a87;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.card h3 {
+  margin-top: 8px;
+  font-size: 30px;
+  font-weight: 900;
+}
+
+.widePanel {
+  padding: 28px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.sectionHeader h2 {
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.schedule {
+  display: grid;
+  gap: 12px;
+}
+
+.scheduleRow {
+  display: grid;
+  grid-template-columns: 140px 1fr auto;
+  gap: 18px;
+  align-items: center;
+  border-top: 1px solid #e2e8ed;
+  padding-top: 14px;
+  color: #111111;
+}
+
+.scheduleRow strong {
+  display: block;
+  font-size: 15px;
+}
+
+.scheduleRow p {
+  color: #6b7a87;
+  font-size: 13px;
+}
+
+.pill {
+  border-radius: 999px;
+  background: rgba(230, 74, 25, 0.12);
+  color: #e64a19;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.loading {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  background: #0a0f14;
+  color: #ffffff;
+  font-weight: 900;
+}
+
+@media (max-width: 980px) {
+  .hero,
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .topbar,
+  .topActions,
+  .profilePanel,
+  .sectionHeader,
+  .scheduleRow {
+    align-items: flex-start;
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .profileStats {
+    grid-template-columns: 1fr;
+  }
+}

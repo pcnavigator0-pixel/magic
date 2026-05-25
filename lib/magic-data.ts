@@ -17,6 +17,8 @@ export type Player = {
   bio: string | null;
   photo_url: string | null;
   status: "active" | "injured" | "inactive";
+  auth_user_id?: string | null;
+  email?: string | null;
 };
 
 export type EventItem = {
@@ -64,6 +66,21 @@ export type CoachProfile = {
   training_base: string | null;
   bio: string | null;
   avatar_url: string | null;
+  auth_user_id?: string | null;
+};
+
+export type ShopProduct = {
+  id: string;
+  name: string;
+  slug: string;
+  category: string;
+  description: string | null;
+  price_cents: number;
+  currency: string;
+  image_url: string | null;
+  inventory_count: number;
+  is_featured: boolean;
+  is_published: boolean;
 };
 
 export type MagicData = {
@@ -72,7 +89,16 @@ export type MagicData = {
   events: EventItem[];
   matches: Match[];
   news: NewsPost[];
+  products: ShopProduct[];
   coachProfile: CoachProfile | null;
+};
+
+export type Standing = {
+  team: string;
+  played: number;
+  wins: number;
+  losses: number;
+  points: number;
 };
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
@@ -84,6 +110,7 @@ export const fallbackMagicData: MagicData = {
   events: [],
   matches: [],
   news: [],
+  products: [],
   coachProfile: null,
 };
 
@@ -91,14 +118,14 @@ function canUseSupabase() {
   return Boolean(supabaseUrl && supabaseKey);
 }
 
-async function restFetch<T>(path: string, init?: RequestInit): Promise<T> {
+async function restFetch<T>(path: string, init?: RequestInit, accessToken?: string): Promise<T> {
   if (!canUseSupabase()) throw new Error("Supabase environment variables are missing.");
 
   const response = await fetch(`${supabaseUrl}/rest/v1/${path}`, {
     ...init,
     headers: {
       apikey: supabaseKey!,
-      Authorization: `Bearer ${supabaseKey}`,
+      Authorization: `Bearer ${accessToken || supabaseKey}`,
       "Content-Type": "application/json",
       ...(init?.headers || {}),
     },
@@ -109,19 +136,24 @@ async function restFetch<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   if (response.status === 204) return undefined as T;
-  return response.json() as Promise<T>;
+
+  const text = await response.text();
+  if (!text) return undefined as T;
+
+  return JSON.parse(text) as T;
 }
 
 export async function getMagicData(): Promise<MagicData> {
   if (!canUseSupabase()) return fallbackMagicData;
 
   try {
-    const [teams, players, events, matches, news, coachProfiles] = await Promise.all([
+    const [teams, players, events, matches, news, products, coachProfiles] = await Promise.all([
       restFetch<Team[]>("teams?select=*&order=is_home_team.desc,name.asc"),
       restFetch<Player[]>("players?select=*&order=jersey_number.asc"),
       restFetch<EventItem[]>("events?select=*&order=event_date.asc,event_time.asc"),
-      restFetch<Match[]>("matches?select=*&order=match_date.desc&limit=8"),
-      restFetch<NewsPost[]>("news_posts?select=*&order=published_at.desc&limit=6"),
+      restFetch<Match[]>("matches?select=*&order=match_date.desc&limit=100"),
+      restFetch<NewsPost[]>("news_posts?select=*&order=published_at.desc&limit=100"),
+      restFetch<ShopProduct[]>("shop_products?select=*&is_published=eq.true&order=is_featured.desc,name.asc&limit=100"),
       restFetch<CoachProfile[]>("coach_profiles?select=*&order=updated_at.desc&limit=1"),
     ]);
 
@@ -131,6 +163,7 @@ export async function getMagicData(): Promise<MagicData> {
       events,
       matches,
       news,
+      products,
       coachProfile: coachProfiles[0] || null,
     };
   } catch {
@@ -158,6 +191,42 @@ export function daysUntil(value: string) {
   const start = new Date();
   const end = new Date(`${value}T00:00:00`);
   return Math.max(0, Math.ceil((end.getTime() - start.getTime()) / 86_400_000));
+}
+
+export function buildStandings(matches: Match[]) {
+  const table = new Map<string, Standing>();
+
+  function ensure(team: string) {
+    if (!table.has(team)) {
+      table.set(team, { team, played: 0, wins: 0, losses: 0, points: 0 });
+    }
+
+    return table.get(team)!;
+  }
+
+  matches
+    .filter((match) => match.status === "final")
+    .forEach((match) => {
+      const magic = ensure("MAGIC BBC");
+      const opponent = match.opponent_name ? ensure(match.opponent_name) : null;
+
+      magic.played += 1;
+      if (opponent) opponent.played += 1;
+
+      if (match.home_score >= match.away_score) {
+        magic.wins += 1;
+        magic.points += 2;
+        if (opponent) opponent.losses += 1;
+      } else {
+        if (opponent) {
+          opponent.wins += 1;
+          opponent.points += 2;
+        }
+        magic.losses += 1;
+      }
+    });
+
+  return Array.from(table.values()).sort((a, b) => b.points - a.points || b.wins - a.wins || a.team.localeCompare(b.team));
 }
 
 export async function insertEvent(payload: Omit<EventItem, "id">) {
@@ -192,6 +261,14 @@ export async function insertNewsPost(payload: Omit<NewsPost, "id">) {
   });
 }
 
+export async function insertShopProduct(payload: Omit<ShopProduct, "id">, accessToken?: string) {
+  return restFetch<ShopProduct[]>("shop_products", {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify(payload),
+  }, accessToken);
+}
+
 export async function upsertCoachProfile(payload: CoachProfile) {
   return restFetch<CoachProfile[]>("coach_profiles", {
     method: "POST",
@@ -202,10 +279,107 @@ export async function upsertCoachProfile(payload: CoachProfile) {
   });
 }
 
-export async function updateCoachProfile(id: string, payload: Omit<CoachProfile, "id">) {
+export async function getCoachProfileForUser(userId: string, accessToken?: string) {
+  const profiles = await restFetch<CoachProfile[]>(
+    `coach_profiles?auth_user_id=eq.${encodeURIComponent(userId)}&select=*&limit=1`,
+    undefined,
+    accessToken,
+  );
+
+  return profiles[0] || null;
+}
+
+export async function insertCoachProfile(payload: Omit<CoachProfile, "id">, accessToken?: string) {
+  return restFetch<CoachProfile[]>("coach_profiles", {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify(payload),
+  }, accessToken);
+}
+
+export async function updateCoachProfile(id: string, payload: Omit<CoachProfile, "id">, accessToken?: string) {
   return restFetch<CoachProfile[]>(`coach_profiles?id=eq.${id}`, {
     method: "PATCH",
     headers: { Prefer: "return=representation" },
     body: JSON.stringify(payload),
+  }, accessToken);
+}
+
+export async function updateEvent(id: string, payload: Omit<EventItem, "id">) {
+  return restFetch<EventItem[]>(`events?id=eq.${id}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify(payload),
   });
+}
+
+export async function updatePlayer(id: string, payload: Omit<Player, "id">) {
+  return restFetch<Player[]>(`players?id=eq.${id}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateMatch(id: string, payload: Omit<Match, "id">) {
+  return restFetch<Match[]>(`matches?id=eq.${id}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateNewsPost(id: string, payload: Omit<NewsPost, "id">) {
+  return restFetch<NewsPost[]>(`news_posts?id=eq.${id}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateShopProduct(id: string, payload: Omit<ShopProduct, "id">, accessToken?: string) {
+  const updatedRows = await restFetch<ShopProduct[]>(`shop_products?id=eq.${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify(payload),
+  }, accessToken);
+
+  if (!updatedRows || updatedRows.length === 0) {
+    throw new Error("No matching product was edited. Your database policy may be blocking product updates.");
+  }
+
+  return updatedRows;
+}
+
+async function deleteRow<T>(table: string, id: string, accessToken?: string) {
+  const deletedRows = await restFetch<T[]>(`${table}?id=eq.${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: { Prefer: "return=representation" },
+  }, accessToken);
+
+  if (!deletedRows || deletedRows.length === 0) {
+    throw new Error("No matching record was deleted. It may already be gone or your database policy blocked the action.");
+  }
+
+  return deletedRows;
+}
+
+export async function deleteEvent(id: string) {
+  return deleteRow<EventItem>("events", id);
+}
+
+export async function deletePlayer(id: string) {
+  return deleteRow<Player>("players", id);
+}
+
+export async function deleteMatch(id: string) {
+  return deleteRow<Match>("matches", id);
+}
+
+export async function deleteNewsPost(id: string) {
+  return deleteRow<NewsPost>("news_posts", id);
+}
+
+export async function deleteShopProduct(id: string, accessToken?: string) {
+  return deleteRow<ShopProduct>("shop_products", id, accessToken);
 }

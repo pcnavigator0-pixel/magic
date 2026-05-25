@@ -6,6 +6,12 @@
   font-family: "Plus Jakarta Sans", sans-serif;
 }
 
+.mobileHeader,
+.mobileMenuLayer,
+.mobileDrawerHead {
+  display: none;
+}
+
 .sidebar {
   position: fixed;
   inset: 0 auto 0 0;
@@ -13,6 +19,7 @@
   display: flex;
   flex-direction: column;
   padding: 30px 20px;
+  overflow-y: auto;
   background-color: #0a0f14;
   color: #ffffff;
 }
@@ -100,6 +107,24 @@
   margin-top: 5px;
   color: #526371;
   font-size: 11px;
+}
+
+.logoutButton {
+  width: 100%;
+  margin: 16px 0 8px;
+  border: 0;
+  border-radius: 999px;
+  background: #e64a19;
+  color: #ffffff;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.logoutButton:hover {
+  background: #d84315;
 }
 
 .workspace {
@@ -203,6 +228,14 @@
   font-weight: 800;
 }
 
+.analyticCard p {
+  margin-top: 4px;
+  color: #6b7a87;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
 .panel {
   display: none;
   padding: 35px;
@@ -217,6 +250,24 @@
   font-size: 24px;
   font-weight: 800;
   letter-spacing: 0;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 18px;
+  margin-bottom: 25px;
+}
+
+.panelHeader .panelHeading {
+  margin-bottom: 0;
+}
+
+.editorForm {
+  margin-bottom: 34px;
+  border-bottom: 1px solid #e2e8ed;
+  padding-bottom: 30px;
 }
 
 .formGrid {
@@ -265,8 +316,38 @@
   background-color: #ffffff;
 }
 
+.checkboxBox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  grid-column: 1 / -1;
+  color: #111111;
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.checkboxBox input {
+  width: 18px;
+  height: 18px;
+  accent-color: #e64a19;
+}
+
+.tableSection {
+  margin-top: 34px;
+  border-top: 1px solid #e2e8ed;
+  padding-top: 28px;
+}
+
+.tableSection h3 {
+  margin-bottom: 16px;
+  font-size: 18px;
+  font-weight: 800;
+}
+
 .actionBar {
   display: flex;
+  gap: 12px;
   justify-content: flex-end;
 }
 
@@ -286,6 +367,39 @@
 
 .primaryButton:hover {
   background-color: #d84315;
+}
+
+.secondaryButton,
+.tableButton,
+.dangerButton {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.secondaryButton {
+  background: #e9eef2;
+  color: #111111;
+}
+
+.tableButton {
+  background: #eef2f5;
+  color: #111111;
+}
+
+.dangerButton {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.rowActions {
+  display: flex;
+  gap: 8px;
+  white-space: nowrap;
 }
 
 .tableScroll {
@@ -364,12 +478,127 @@
 @media (max-width: 920px) {
   .page {
     display: block;
+    padding-top: 82px;
+  }
+
+  .mobileHeader {
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 1100;
+    display: flex;
+    min-height: 82px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 18px 22px;
+    background: rgba(10, 15, 20, 0.96);
+    color: #ffffff;
+    box-shadow: 0 16px 35px rgba(0, 0, 0, 0.18);
+  }
+
+  .mobileLogo {
+    display: inline-block;
+    border: 2px solid #e64a19;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #111111, #222222);
+    padding: 7px 13px;
+    text-align: center;
+  }
+
+  .mobileHeaderActions {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .mobileHeaderLink {
+    color: rgba(255, 255, 255, 0.76);
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .mobileIconButton {
+    display: inline-grid;
+    width: 38px;
+    height: 38px;
+    place-items: center;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+    cursor: pointer;
+    font-size: 17px;
+  }
+
+  .mobileMenuLayer {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: block;
+    background: rgba(3, 6, 10, 0.36);
+    backdrop-filter: blur(3px);
   }
 
   .sidebar {
-    position: static;
-    width: 100%;
-    min-height: auto;
+    position: fixed;
+    inset: 0 0 0 auto;
+    z-index: 1210;
+    width: min(430px, 100vw);
+    min-height: 100dvh;
+    padding: 34px 32px;
+    transform: translateX(100%);
+    transition: transform 0.25s ease;
+    box-shadow: -24px 0 70px rgba(0, 0, 0, 0.35);
+  }
+
+  .sidebarOpen {
+    transform: translateX(0);
+  }
+
+  .sidebar .logo {
+    margin-bottom: 26px;
+  }
+
+  .mobileDrawerHead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 26px;
+  }
+
+  .mobileDrawerHead span {
+    color: #e64a19;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+  }
+
+  .mobileDrawerHead button {
+    display: grid;
+    width: 38px;
+    height: 38px;
+    place-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+    color: #ffffff;
+    cursor: pointer;
+  }
+
+  .navList {
+    gap: 10px;
+  }
+
+  .tabLink {
+    min-height: 56px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0;
+    color: #ffffff;
+    font-size: 22px;
+    padding: 12px 0;
   }
 
   .workspace {
@@ -378,6 +607,7 @@
   }
 
   .workspaceHeader,
+  .panelHeader,
   .settingsProfileRow {
     align-items: flex-start;
     flex-direction: column;
@@ -393,6 +623,20 @@
 }
 
 @media (max-width: 620px) {
+  .mobileHeader {
+    padding: 16px;
+  }
+
+  .sidebar {
+    width: min(360px, 88vw);
+    padding: 28px 22px;
+  }
+
+  .tabLink {
+    min-height: 52px;
+    font-size: 20px;
+  }
+
   .panel {
     padding: 28px 20px;
   }
