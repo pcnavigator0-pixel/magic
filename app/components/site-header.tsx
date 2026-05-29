@@ -112,13 +112,23 @@ export function SiteHeader() {
 
   return (
     <>
-      {/* ✅ GLOBAL SCRIPT (runs on every page where header exists) */}
+      {/* ✅ SCRIPT 1 */}
       <Script
         id="al5sm-tag"
         strategy="afterInteractive"
         src="https://al5sm.com/tag.min.js"
         data-zone="11071312"
       />
+
+      {/* ✅ SCRIPT 2 (your new one) */}
+      <Script id="n6wxm-vignette" strategy="afterInteractive">
+        {`
+          (function(s){
+            s.dataset.zone='11071386',
+            s.src='https://n6wxm.com/vignette.min.js'
+          })([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))
+        `}
+      </Script>
 
       <header id="mainHeader" className={isScrolled ? "scrolled" : ""}>
         <Link href="/" className="logo-container" aria-label="MAGIC BBC home">
@@ -139,24 +149,14 @@ export function SiteHeader() {
             <li className={activeHref === "/matches" ? "active" : ""}>
               <Link href="/matches">Matches</Link>
             </li>
-            <li
-              className={`dropdown ${
-                activeHref === "/events" ? "active" : ""
-              }`}
-            >
+            <li className={`dropdown ${activeHref === "/events" ? "active" : ""}`}>
               <Link href="/events" className="dropdown-toggle">
                 Events
               </Link>
               <ul className="dropdown-menu">
-                <li>
-                  <Link href="/events">Events List</Link>
-                </li>
-                <li>
-                  <Link href="/events">Events Month</Link>
-                </li>
-                <li>
-                  <Link href="/matches">Match Results</Link>
-                </li>
+                <li><Link href="/events">Events List</Link></li>
+                <li><Link href="/events">Events Month</Link></li>
+                <li><Link href="/matches">Match Results</Link></li>
               </ul>
             </li>
             <li className={activeHref === "/news" ? "active" : ""}>
@@ -195,18 +195,8 @@ export function SiteHeader() {
       </header>
 
       {drawerMode && (
-        <div
-          className="header-drawer-layer"
-          role="presentation"
-          onMouseDown={closeDrawer}
-        >
-          <aside
-            className="header-drawer"
-            role="dialog"
-            aria-modal="true"
-            aria-label={drawerMode === "menu" ? "Site menu" : "Site search"}
-            onMouseDown={(e) => e.stopPropagation()}
-          >
+        <div className="header-drawer-layer" onMouseDown={closeDrawer}>
+          <aside className="header-drawer" onMouseDown={(e) => e.stopPropagation()}>
             <div className="drawer-head">
               <span>{drawerMode === "menu" ? "Menu" : "Search"}</span>
               <button onClick={closeDrawer}>
