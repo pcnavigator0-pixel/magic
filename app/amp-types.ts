@@ -1,8 +1,6 @@
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      "amp-auto-ads": any;
-    }
+declare namespace JSX {
+  interface IntrinsicElements {
+    "amp-auto-ads": any;
   }
 }
 
