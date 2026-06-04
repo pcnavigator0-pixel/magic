@@ -46,9 +46,12 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col">
-        <amp-auto-ads
-          type="adsense"
-          data-ad-client="ca-pub-4563776116108130"
+        <div
+          style={{ display: "contents" }}
+          dangerouslySetInnerHTML={{
+            __html:
+              '<amp-auto-ads type="adsense" data-ad-client="ca-pub-4563776116108130"></amp-auto-ads>',
+          }}
         />
         {children}
       </body>
