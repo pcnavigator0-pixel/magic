@@ -45,7 +45,13 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <amp-auto-ads
+          type="adsense"
+          data-ad-client="ca-pub-4563776116108130"
+        />
+        {children}
+      </body>
     </html>
   );
 }
