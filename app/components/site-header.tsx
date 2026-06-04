@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Script from "next/script";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { fallbackMagicData, getMagicData, type MagicData } from "@/lib/magic-data";
@@ -112,24 +111,6 @@ export function SiteHeader() {
 
   return (
     <>
-      {/* ✅ SCRIPT 1 */}
-      <Script
-        id="al5sm-tag"
-        strategy="afterInteractive"
-        src="https://al5sm.com/tag.min.js"
-        data-zone="11071312"
-      />
-
-      {/* ✅ SCRIPT 2 (your new one) */}
-      <Script id="n6wxm-vignette" strategy="afterInteractive">
-        {`
-          (function(s){
-            s.dataset.zone='11071386',
-            s.src='https://n6wxm.com/vignette.min.js'
-          })([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))
-        `}
-      </Script>
-
       <header id="mainHeader" className={isScrolled ? "scrolled" : ""}>
         <Link href="/" className="logo-container" aria-label="MAGIC BBC home">
           <div className="logo-badge">
