@@ -122,8 +122,8 @@ export default function Home() {
           <div className="social-links">
             <a href="#fb">Facebook</a>
             <a href="#x">X</a>
-            <a href="#db">Dribbble</a>
-            <a href="#ig">Instagram</a>
+            <a href="https://l.instagram.com/?u=https%3A%2F%2Fyoutube.com%2F%40magicchildrenbasketball%3Fsi%3DSyhFvhu2LHQfjIqW%26fbclid%3DPAZXh0bgNhZW0CMTEAc3J0YwZhcHBfaWQPOTM2NjE5NzQzMzkyNDU5AAGn_DL7rA-_3zcYPx_8wKxVNjtSyluAApb5-wzk0TngnnC7O1SF27Zy-IxMx8Y_aem_hY0wqJce9PwJ9XznIHS02g&e=AUCUtuECGO2danmfbgYX3R0eYry4zSSq2E8CJs4pAb6cHU7ZBUIlllWID_n_U4SBSWairSLGZBHYAG1NXXfvopmVY3usshaef-BGkT434RUR6Ej5LFoqPBlkaMl4oJZHwGJ_apE">YouTube</a>
+            <a href="https://www.instagram.com/magic_initiative_rwanda?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==">Instagram</a>
           </div>
         </footer>
       </div>
@@ -305,10 +305,10 @@ export default function Home() {
             </div>
             <p>Basketball stories, match scores, standings, and team updates for fans who follow every possession.</p>
             <div className="footer-socials" aria-label="Social links">
-              <a href="#fb" aria-label="Facebook"><i className="fa-brands fa-facebook-f" aria-hidden="true" /></a>
-              <a href="#x" aria-label="X"><i className="fa-brands fa-x-twitter" aria-hidden="true" /></a>
-              <a href="#ig" aria-label="Instagram"><i className="fa-brands fa-instagram" aria-hidden="true" /></a>
-              <a href="#yt" aria-label="YouTube"><i className="fa-brands fa-youtube" aria-hidden="true" /></a>
+              <a href="https://web.facebook.com/share/g/1EWCieHpvw/" aria-label="Facebook" target="_blank" rel="noreferrer"><i className="fa-brands fa-facebook-f" aria-hidden="true" /></a>
+              <a href="https://twitter.com/MagicBBI2022" aria-label="X" target="_blank" rel="noreferrer"><i className="fa-brands fa-x-twitter" aria-hidden="true" /></a>
+              <a href="https://www.instagram.com/magic_initiative_rwanda?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" aria-label="Instagram" target="_blank" rel="noreferrer"><i className="fa-brands fa-instagram" aria-hidden="true" /></a>
+              <a href="https://www.youtube.com/@Magicrwanda" aria-label="YouTube" target="_blank" rel="noreferrer"><i className="fa-brands fa-youtube" aria-hidden="true" /></a>
             </div>
           </div>
 

@@ -201,7 +201,7 @@ export function SiteHeader() {
             ) : (
               <div className="drawer-search">
                 <label>
-                  <span>Search MAGIC BBC</span>
+                  <span>Search MAGIC Initiative Rwanda</span>
                   <input
                     autoFocus
                     type="search"
@@ -228,13 +228,20 @@ export function SiteHeader() {
                   <h3>{normalizedSearch ? "Suggestions" : "Popular links"}</h3>
                   <div className="search-results">
                     {(normalizedSearch ? suggestions : searchItems.slice(0, 6)).map((item) => (
-                      <Link key={`${item.href}-${item.title}`} href={item.href} onClick={() => { rememberSearch(searchTerm || item.title); closeDrawer(); }}>
+                      <Link
+                        key={`${item.href}-${item.title}`}
+                        href={item.href}
+                        onClick={() => {
+                          rememberSearch(searchTerm || item.title);
+                          closeDrawer();
+                        }}
+                      >
                         <span>{item.type}</span>
                         <strong>{item.title}</strong>
                         <small>{item.type}</small>
                       </Link>
-                    )
-                  )}
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
