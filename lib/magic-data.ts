@@ -17,6 +17,8 @@ export type Player = {
   bio: string | null;
   photo_url: string | null;
   status: "active" | "injured" | "inactive";
+  registration_code: string;
+  is_registered: boolean;
   auth_user_id?: string | null;
   email?: string | null;
 };
@@ -69,6 +71,17 @@ export type CoachProfile = {
   auth_user_id?: string | null;
 };
 
+export type Notification = {
+  id: string;
+  recipient_player_id: string;
+  sender_coach_id: string | null;
+  message: string;
+  duration_days: number;
+  created_at: string;
+  expires_at: string;
+  is_read: boolean;
+};
+
 export type ShopProduct = {
   id: string;
   name: string;
@@ -90,6 +103,7 @@ export type MagicData = {
   matches: Match[];
   news: NewsPost[];
   products: ShopProduct[];
+  notifications: Notification[];
   coachProfile: CoachProfile | null;
 };
 
@@ -111,6 +125,7 @@ export const fallbackMagicData: MagicData = {
   matches: [],
   news: [],
   products: [],
+  notifications: [],
   coachProfile: null,
 };
 
@@ -121,40 +136,83 @@ function canUseSupabase() {
 async function restFetch<T>(path: string, init?: RequestInit, accessToken?: string): Promise<T> {
   if (!canUseSupabase()) throw new Error("Supabase environment variables are missing.");
 
-  const response = await fetch(`${supabaseUrl}/rest/v1/${path}`, {
-    ...init,
-    headers: {
-      apikey: supabaseKey!,
-      Authorization: `Bearer ${accessToken || supabaseKey}`,
-      "Content-Type": "application/json",
-      ...(init?.headers || {}),
-    },
-  });
+  try {
+    const response = await fetch(`${supabaseUrl}/rest/v1/${path}`, {
+      ...init,
+      headers: {
+        apikey: supabaseKey!,
+        Authorization: `Bearer ${accessToken || supabaseKey}`,
+        "Content-Type": "application/json",
+        ...(init?.headers || {}),
+      },
+    });
 
-  if (!response.ok) {
-    throw new Error(`Supabase request failed: ${response.status}`);
+    if (!response.ok) {
+      let detail = "";
+      try {
+        const body = await response.text();
+        if (body) {
+          try {
+            const parsed = JSON.parse(body);
+            detail = parsed.message || parsed.hint || parsed.details || body;
+          } catch {
+            detail = body;
+          }
+        }
+      } catch {
+        // ignore — fall back to status-only message below
+      }
+      throw new Error(`Supabase request failed: ${response.status}${detail ? ` — ${detail}` : ""}`);
+    }
+
+    if (response.status === 204) return undefined as T;
+
+    const text = await response.text();
+    if (!text) return undefined as T;
+
+    return JSON.parse(text) as T;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch from Supabase';
+    console.error(`[restFetch] Error fetching ${path}:`, message);
+    throw error;
   }
-
-  if (response.status === 204) return undefined as T;
-
-  const text = await response.text();
-  if (!text) return undefined as T;
-
-  return JSON.parse(text) as T;
 }
 
-export async function getMagicData(): Promise<MagicData> {
+/**
+ * Fetches site-wide data.
+ *
+ * - Called with no accessToken (public pages): players come from the
+ *   `players_public` view, which never includes registration_code,
+ *   email, auth_user_id, or is_registered. Notifications are skipped
+ *   entirely (anon has no access — they're per-player private data).
+ * - Called with a player's accessToken: same players_public view (a
+ *   player doesn't need to see other players' private fields either),
+ *   but notifications are now fetched with their token so RLS scopes
+ *   the result to just their own messages.
+ * - Called with a coach's accessToken and isCoach=true: fetches the
+ *   FULL players table (needed for the roster management screen —
+ *   registration codes, is_registered, email) and all notifications.
+ *   RLS still enforces that only an actual coach account can read this.
+ */
+export async function getMagicData(accessToken?: string, isCoach = false): Promise<MagicData> {
   if (!canUseSupabase()) return fallbackMagicData;
 
   try {
-    const [teams, players, events, matches, news, products, coachProfiles] = await Promise.all([
+    const playersPath = isCoach && accessToken
+      ? "players?select=*&order=jersey_number.asc"
+      : "players_public?select=*&order=jersey_number.asc";
+
+    const [teams, players, events, matches, news, products, coachProfiles, notifications] = await Promise.all([
       restFetch<Team[]>("teams?select=*&order=is_home_team.desc,name.asc"),
-      restFetch<Player[]>("players?select=*&order=jersey_number.asc"),
+      restFetch<Player[]>(playersPath, undefined, accessToken),
       restFetch<EventItem[]>("events?select=*&order=event_date.asc,event_time.asc"),
       restFetch<Match[]>("matches?select=*&order=match_date.desc&limit=100"),
       restFetch<NewsPost[]>("news_posts?select=*&order=published_at.desc&limit=100"),
       restFetch<ShopProduct[]>("shop_products?select=*&is_published=eq.true&order=is_featured.desc,name.asc&limit=100"),
       restFetch<CoachProfile[]>("coach_profiles?select=*&order=updated_at.desc&limit=1"),
+      accessToken
+        ? restFetch<Notification[]>("notifications?select=*&expires_at=gt.now()&order=created_at.desc", undefined, accessToken)
+        : Promise.resolve<Notification[]>([]),
     ]);
 
     return {
@@ -164,6 +222,7 @@ export async function getMagicData(): Promise<MagicData> {
       matches,
       news,
       products,
+      notifications,
       coachProfile: coachProfiles[0] || null,
     };
   } catch {
@@ -207,17 +266,17 @@ export function buildStandings(matches: Match[]) {
   matches
     .filter((match) => match.status === "final")
     .forEach((match) => {
-      const magic = ensure("MAGIC BBC");
+      const magic = ensure("Magic Initiative Rwanda");
       const opponent = match.opponent_name ? ensure(match.opponent_name) : null;
 
       magic.played += 1;
       if (opponent) opponent.played += 1;
 
-      if (match.home_score >= match.away_score) {
+      if (match.home_score > match.away_score) {
         magic.wins += 1;
         magic.points += 2;
         if (opponent) opponent.losses += 1;
-      } else {
+      } else if (match.home_score < match.away_score) {
         if (opponent) {
           opponent.wins += 1;
           opponent.points += 2;
@@ -237,12 +296,19 @@ export async function insertEvent(payload: Omit<EventItem, "id">) {
   });
 }
 
-export async function insertPlayer(payload: Omit<Player, "id">) {
+export async function insertPlayer(payload: Omit<Player, "id" | "registration_code" | "is_registered" | "auth_user_id" | "email">, accessToken?: string) {
+  const registration_code = generateRegistrationCode();
+  
+  // Use public anon key if no accessToken provided
   return restFetch<Player[]>("players", {
     method: "POST",
     headers: { Prefer: "return=representation" },
-    body: JSON.stringify(payload),
-  });
+    body: JSON.stringify({
+      ...payload,
+      registration_code,
+      is_registered: false,
+    }),
+  }, accessToken);
 }
 
 export async function insertMatch(payload: Omit<Match, "id">) {
@@ -313,12 +379,18 @@ export async function updateEvent(id: string, payload: Omit<EventItem, "id">) {
   });
 }
 
-export async function updatePlayer(id: string, payload: Omit<Player, "id">) {
-  return restFetch<Player[]>(`players?id=eq.${id}`, {
+export async function updatePlayer(id: string, payload: Omit<Player, "id" | "registration_code" | "is_registered" | "auth_user_id" | "email">, accessToken?: string) {
+  const updatedRows = await restFetch<Player[]>(`players?id=eq.${id}`, {
     method: "PATCH",
     headers: { Prefer: "return=representation" },
     body: JSON.stringify(payload),
-  });
+  }, accessToken);
+
+  if (!updatedRows || updatedRows.length === 0) {
+    throw new Error("No matching player was updated. Your database policy may be blocking this — make sure you're signed in as the coach.");
+  }
+
+  return updatedRows;
 }
 
 export async function updateMatch(id: string, payload: Omit<Match, "id">) {
@@ -368,8 +440,33 @@ export async function deleteEvent(id: string) {
   return deleteRow<EventItem>("events", id);
 }
 
-export async function deletePlayer(id: string) {
-  return deleteRow<Player>("players", id);
+/**
+ * Deletes a player completely: their portal_profiles row, their players
+ * row, and (if they've registered) their Supabase Auth login. Goes
+ * through /api/coach/delete-player because removing an Auth login
+ * requires the service role key, which never runs in the browser.
+ */
+export async function deletePlayerFully(playerId: string, accessToken: string) {
+  const response = await fetch("/api/coach/delete-player", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ playerId }),
+  });
+
+  const result = await response.json();
+
+  if (!response.ok || !result.success) {
+    throw new Error(result.error || "Failed to delete player.");
+  }
+
+  return result;
+}
+
+export async function deletePlayer(id: string, accessToken?: string) {
+  return deleteRow<Player>("players", id, accessToken);
 }
 
 export async function deleteMatch(id: string) {
@@ -382,4 +479,130 @@ export async function deleteNewsPost(id: string) {
 
 export async function deleteShopProduct(id: string, accessToken?: string) {
   return deleteRow<ShopProduct>("shop_products", id, accessToken);
+}
+
+export async function insertNotification(payload: {
+  recipient_player_id: string;
+  sender_coach_id?: string | null;
+  message: string;
+  duration_days: number;
+}, accessToken?: string) {
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + payload.duration_days);
+
+  return restFetch<Notification[]>("notifications", {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify({
+      recipient_player_id: payload.recipient_player_id,
+      sender_coach_id: payload.sender_coach_id || null,
+      message: payload.message,
+      duration_days: payload.duration_days,
+      expires_at: expiresAt.toISOString(),
+    }),
+  }, accessToken);
+}
+
+export async function updateNotification(id: string, payload: Partial<Omit<Notification, "id">>, accessToken?: string) {
+  return restFetch<Notification[]>(`notifications?id=eq.${id}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify(payload),
+  }, accessToken);
+}
+
+export async function deleteNotification(id: string, accessToken?: string) {
+  return deleteRow<Notification>("notifications", id, accessToken);
+}
+
+export async function getNotificationsForPlayer(playerId: string, accessToken?: string) {
+  const notifications = await restFetch<Notification[]>(
+    `notifications?recipient_player_id=eq.${encodeURIComponent(playerId)}&expires_at=gt.now()&order=created_at.desc`,
+    undefined,
+    accessToken,
+  );
+
+  return notifications || [];
+}
+
+/**
+ * Generates a unique 8-character alphanumeric registration code
+ * Used when coaches create new player profiles
+ */
+export function generateRegistrationCode(): string {
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let code = "";
+  for (let i = 0; i < 8; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+export type RegistrationCodeCheck =
+  | { status: "ok"; player: { id: string; full_name: string; jersey_number: number; position: string; height: string | null } }
+  | { status: "not_found" }
+  | { status: "already_used" };
+
+/**
+ * Checks a registration code via the verify_registration_code() Postgres
+ * function. This is the ONLY way the app looks up a code now — it never
+ * reads the players table directly with the anon key, so it can't be used
+ * to enumerate other players' codes, emails, or registration status.
+ */
+export async function checkRegistrationCode(registrationCode: string): Promise<RegistrationCodeCheck> {
+  const rows = await restFetch<Array<{
+    status: "ok" | "not_found" | "already_used";
+    player_id: string | null;
+    full_name: string | null;
+    jersey_number: number | null;
+    position: string | null;
+    height: string | null;
+  }>>("rpc/verify_registration_code", {
+    method: "POST",
+    body: JSON.stringify({ p_code: registrationCode }),
+  });
+
+  const result = rows?.[0];
+
+  if (!result || result.status !== "ok" || !result.player_id) {
+    return { status: result?.status === "already_used" ? "already_used" : "not_found" };
+  }
+
+  return {
+    status: "ok",
+    player: {
+      id: result.player_id,
+      full_name: result.full_name || "",
+      jersey_number: result.jersey_number ?? 0,
+      position: result.position || "",
+      height: result.height,
+    },
+  };
+}
+
+export async function getPlayerProfileWithPortal(playerId: string, accessToken?: string) {
+  const players = await restFetch<Player[]>(
+    `players?id=eq.${encodeURIComponent(playerId)}&limit=1`,
+    undefined,
+    accessToken
+  );
+  
+  const player = players?.[0];
+  if (!player) return null;
+
+  // Get portal profile if auth_user_id exists
+  let portalProfile = null;
+  if (player.auth_user_id) {
+    const profiles = await restFetch<any[]>(
+      `portal_profiles?id=eq.${encodeURIComponent(player.auth_user_id)}&limit=1`,
+      undefined,
+      accessToken
+    );
+    portalProfile = profiles?.[0] || null;
+  }
+
+  return {
+    player,
+    portalProfile,
+  };
 }

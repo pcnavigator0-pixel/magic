@@ -8,7 +8,7 @@ export default async function MatchesPage() {
     <PublicPageShell
       eyebrow="Matches"
       title="Scores and fixtures"
-      description="Review recent results and upcoming games from the MAGIC BBC match archive."
+      description="Review recent results and upcoming games from the Magic Initiative Rwanda match archive."
     >
       <section className="public-list">
         {data.matches.map((match) => (
@@ -19,7 +19,7 @@ export default async function MatchesPage() {
             </div>
             <div>
               <span>{match.league}</span>
-              <h2>MAGIC BBC vs {match.opponent_name || "Opponent"}</h2>
+              <h2>Magic Initiative Rwanda vs {match.opponent_name || "Opponent"}</h2>
               <p>{formatDisplayDate(match.match_date)}{match.venue ? ` - ${match.venue}` : ""}</p>
               {match.mvp_name && <p>MVP: {match.mvp_name}</p>}
             </div>

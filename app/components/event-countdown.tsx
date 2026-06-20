@@ -14,7 +14,9 @@ type ServerTimeResponse = {
 };
 
 let serverClockPromise: Promise<number | null> | null = null;
+let lastServerSyncMs = 0;
 const defaultEventTimeZone = "Africa/Kigali";
+const SERVER_SYNC_INTERVAL = 5 * 60_000; // Only sync every 5 minutes to avoid hammering the API
 
 export function EventCountdown({
   eventDate,
@@ -34,9 +36,16 @@ export function EventCountdown({
     let clockBasePerformanceMs = window.performance.now();
 
     const syncClock = async () => {
+      // Only attempt sync if enough time has passed since last attempt
+      const now = Date.now();
+      if (now - lastServerSyncMs < SERVER_SYNC_INTERVAL) {
+        return;
+      }
+
       const serverTimeMs = await getServerTime();
       if (ignore || !serverTimeMs) return;
 
+      lastServerSyncMs = Date.now();
       clockBaseMs = serverTimeMs;
       clockBasePerformanceMs = window.performance.now();
       setNow(clockBaseMs);
@@ -48,7 +57,7 @@ export function EventCountdown({
 
     syncClock();
     const timer = window.setInterval(tick, 1000);
-    const syncTimer = window.setInterval(syncClock, 60_000);
+    const syncTimer = window.setInterval(syncClock, 30_000); // Check every 30s but only sync if interval elapsed
 
     return () => {
       ignore = true;
@@ -108,16 +117,31 @@ function formatRemaining(value: number, compact: boolean) {
 }
 
 async function getServerTime() {
-  serverClockPromise ??= fetch("/api/server-time", { cache: "no-store" })
+  // Return null if we already tried and the API isn't available
+  // This prevents hammering a failing endpoint
+  if (serverClockPromise instanceof Error) {
+    return null;
+  }
+
+  if (serverClockPromise instanceof Promise) {
+    return serverClockPromise;
+  }
+
+  serverClockPromise = fetch("/api/server-time", { cache: "no-store" })
     .then(async (response) => {
-      if (!response.ok) return null;
+      if (!response.ok) {
+        // Mark this promise as failed so we don't retry immediately
+        serverClockPromise = new Error("API not available") as any;
+        return null;
+      }
 
       const data = (await response.json()) as ServerTimeResponse;
       return typeof data.serverTimeMs === "number" ? data.serverTimeMs : null;
     })
-    .catch(() => null)
-    .finally(() => {
-      serverClockPromise = null;
+    .catch(() => {
+      // Mark failure to prevent rapid retries
+      serverClockPromise = new Error("API fetch failed") as any;
+      return null;
     });
 
   return serverClockPromise;

@@ -39,7 +39,7 @@ export function NewsImageCarousel({
   if (images.length === 0) {
     return (
       <div className={placeholderClassName || "news-image-placeholder"} aria-hidden="true">
-        MAGIC BBC
+        Magic Initiative Rwanda
       </div>
     );
   }

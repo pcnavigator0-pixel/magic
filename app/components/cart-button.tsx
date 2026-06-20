@@ -36,7 +36,7 @@ export function CartButton() {
 
   const whatsappHref = useMemo(() => {
     const lines = [
-      "Hello MAGIC BBC, I would like to order:",
+      "Hello Magic Initiative Rwanda, I would like to order:",
       ...items.map((item) => `- ${item.name} x${item.quantity} (${formatPrice(item.price_cents * item.quantity, item.currency)})`),
       `Total: ${formatPrice(total, currency)}`,
     ];

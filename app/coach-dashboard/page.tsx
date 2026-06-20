@@ -9,7 +9,7 @@ import {
   deleteEvent,
   deleteMatch,
   deleteNewsPost,
-  deletePlayer,
+  deletePlayerFully,
   deleteShopProduct,
   fallbackMagicData,
   formatDisplayDate,
@@ -19,6 +19,7 @@ import {
   insertEvent,
   insertMatch,
   insertNewsPost,
+  insertNotification,
   insertPlayer,
   insertShopProduct,
   updateCoachProfile,
@@ -31,6 +32,7 @@ import {
   type MagicData,
   type Match,
   type NewsPost,
+  type Notification,
   type Player,
   type ShopProduct,
 } from "@/lib/magic-data";
@@ -44,6 +46,7 @@ const panels = [
   { id: "players", label: "Players", icon: "fa-person-running" },
   { id: "news", label: "News", icon: "fa-newspaper" },
   { id: "products", label: "Shop Products", icon: "fa-shirt" },
+  { id: "notifications", label: "Notifications", icon: "fa-bell" },
   { id: "history", label: "Match Logs", icon: "fa-clipboard-list" },
   { id: "settings", label: "Settings", icon: "fa-gear" },
 ] as const;
@@ -67,13 +70,21 @@ export default function CoachDashboardPage() {
   const [showPlayerForm, setShowPlayerForm] = useState(false);
   const [showNewsForm, setShowNewsForm] = useState(false);
   const [showProductForm, setShowProductForm] = useState(false);
+  const [showNotificationForm, setShowNotificationForm] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [notificationForm, setNotificationForm] = useState({
+    selectedPlayer: "",
+    message: "",
+    duration: 7,
+  });
   const [editingEvent, setEditingEvent] = useState<EventItem | null>(null);
   const [editingMatch, setEditingMatch] = useState<Match | null>(null);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [editingNews, setEditingNews] = useState<NewsPost | null>(null);
   const [editingProduct, setEditingProduct] = useState<ShopProduct | null>(null);
-  const wins = dashboardData.matches.filter((match) => match.home_score >= match.away_score && match.status === "final").length;
+  const [showStatsOnMobile, setShowStatsOnMobile] = useState(false);
+  const [newPlayerCode, setNewPlayerCode] = useState<{ name: string; code: string } | null>(null);
+  const wins = dashboardData.matches.filter((match) => match.home_score > match.away_score && match.status === "final").length;
   const losses = dashboardData.matches.filter((match) => match.home_score < match.away_score && match.status === "final").length;
   const featuredProducts = dashboardData.products.filter((product) => product.is_featured).length;
 
@@ -95,7 +106,11 @@ export default function CoachDashboardPage() {
       return;
     }
 
-    loadDashboard(session);
+    loadDashboard(session).catch((error) => {
+      console.error("Failed to load dashboard:", error);
+      setFormError("Failed to load dashboard data. Using default view.");
+      applyDashboardData(fallbackMagicData, session);
+    });
   }, []);
 
   function applyDashboardData(data: MagicData, session?: PortalSession) {
@@ -103,7 +118,7 @@ export default function CoachDashboardPage() {
     setDashboardData(data);
     setCoachName(profile?.full_name || session?.profile.full_name || "Coach");
     setCoachRole(profile?.role || "Coach");
-    setClubName(profile?.club_name || "MAGIC BBC");
+    setClubName(profile?.club_name || "Magic Initiative Rwanda");
   }
 
   async function refreshDashboard() {
@@ -112,12 +127,23 @@ export default function CoachDashboardPage() {
   }
 
   async function loadDashboard(session: PortalSession) {
-    const [data, coachProfile] = await Promise.all([
-      getMagicData(),
-      getCoachProfileForUser(session.user.id, session.access_token),
-    ]);
+    try {
+      const [data, coachProfile] = await Promise.all([
+        getMagicData(session.access_token, true).catch((err) => {
+          console.error("Failed to fetch magic data:", err);
+          return fallbackMagicData;
+        }),
+        getCoachProfileForUser(session.user.id, session.access_token).catch((err) => {
+          console.error("Failed to fetch coach profile:", err);
+          return null;
+        }),
+      ]);
 
-    applyDashboardData({ ...data, coachProfile }, session);
+      applyDashboardData({ ...data, coachProfile }, session);
+    } catch (error) {
+      console.error("Error loading dashboard:", error);
+      applyDashboardData(fallbackMagicData, session);
+    }
   }
 
   async function runDashboardAction(action: () => Promise<void>, successMessage: string) {
@@ -212,9 +238,14 @@ export default function CoachDashboardPage() {
       };
 
       if (editingPlayer) {
-        await updatePlayer(editingPlayer.id, payload);
+        await updatePlayer(editingPlayer.id, payload, session.access_token);
       } else {
-        await insertPlayer(payload);
+        const result = await insertPlayer(payload, session.access_token);
+        if (Array.isArray(result) && result[0]) {
+          const newPlayer = result[0];
+          setNewPlayerCode({ name: payload.full_name, code: newPlayer.registration_code });
+          setTimeout(() => setNewPlayerCode(null), 8000);
+        }
       }
       await refreshDashboard();
       setEditingPlayer(null);
@@ -335,6 +366,31 @@ export default function CoachDashboardPage() {
     }, "Profile settings saved to Supabase.");
   }
 
+  async function handleNotificationCreate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+
+    await runDashboardAction(async () => {
+      const session = await requireFreshCoachSession();
+      const payload = {
+        recipient_player_id: notificationForm.selectedPlayer,
+        sender_coach_id: dashboardData.coachProfile?.id || null,
+        message: notificationForm.message,
+        duration_days: notificationForm.duration,
+      };
+
+      await insertNotification(payload, session.access_token);
+      await refreshDashboard();
+      setNotificationForm({
+        selectedPlayer: "",
+        message: "",
+        duration: 7,
+      });
+      setShowNotificationForm(false);
+      form.reset();
+    }, "Notification sent to player successfully.");
+  }
+
   async function handleDelete(label: string, collection: CollectionKey, id: string, action: () => Promise<unknown>) {
     if (!window.confirm(`Delete this ${label}? This cannot be undone.`)) return;
 
@@ -366,9 +422,9 @@ export default function CoachDashboardPage() {
   return (
     <main className={styles.page}>
       <header className={styles.mobileHeader}>
-        <Link href="/" className={styles.mobileLogo} aria-label="MAGIC BBC home">
+        <Link href="/" className={styles.mobileLogo} aria-label="Magic Initiative Rwanda home">
           <span className={styles.ball}>BB</span>
-          <span className={styles.logoTitle}>MAGIC BBC</span>
+          <span className={styles.logoTitle}>Magic Initiative Rwanda</span>
         </Link>
 
         <div className={styles.mobileHeaderActions}>
@@ -390,9 +446,9 @@ export default function CoachDashboardPage() {
       )}
 
       <aside className={`${styles.sidebar} ${isMobileMenuOpen ? styles.sidebarOpen : ""}`}>
-        <Link href="/" className={styles.logo} aria-label="MAGIC BBC home">
+        <Link href="/" className={styles.logo} aria-label="Magic Initiative Rwanda home">
           <span className={styles.ball}>🏀</span>
-          <span className={styles.logoTitle}>MAGIC BBC</span>
+          <span className={styles.logoTitle}>Magic Initiative Rwanda</span>
         </Link>
 
         <div className={styles.mobileDrawerHead}>
@@ -448,12 +504,45 @@ export default function CoachDashboardPage() {
 
         {formError && <p className={styles.formError}>{formError}</p>}
 
-        <section className={styles.analyticsStrip} aria-label="Team summary">
+        {!showStatsOnMobile && (
+          <button 
+            className={styles.toggleStatsButton} 
+            onClick={() => setShowStatsOnMobile(true)}
+            aria-label="Show statistics"
+          >
+            <i className="fa-solid fa-chevron-down" />
+            Show Statistics
+          </button>
+        )}
+
+        {showStatsOnMobile && (
+          <button 
+            className={styles.toggleStatsButton} 
+            onClick={() => setShowStatsOnMobile(false)}
+            aria-label="Hide statistics"
+          >
+            <i className="fa-solid fa-chevron-up" />
+            Hide Statistics
+          </button>
+        )}
+
+        <section className={`${styles.analyticsStrip} ${showStatsOnMobile ? styles.statsVisible : ""}`} aria-label="Team summary">
           <div className={styles.analyticCard}><span>Total Wins</span><h3>{wins}</h3></div>
           <div className={styles.analyticCard}><span>Loss Record</span><h3>{losses}</h3></div>
           <div className={styles.analyticCard}><span>Active Roster</span><h3>{dashboardData.players.length}</h3></div>
           <div className={styles.analyticCard}><span>Shop Products</span><h3>{dashboardData.products.length}</h3><p>{featuredProducts} featured</p></div>
         </section>
+
+        {showStatsOnMobile && (
+          <button 
+            className={styles.toggleStatsButton} 
+            onClick={() => setShowStatsOnMobile(false)}
+            aria-label="Hide statistics"
+          >
+            <i className="fa-solid fa-chevron-up" />
+            Hide Statistics
+          </button>
+        )}
 
         <section className={`${styles.panel} ${activePanel === "events" ? styles.activePanel : ""}`}>
           <PanelHeader
@@ -470,8 +559,8 @@ export default function CoachDashboardPage() {
               <div className={styles.formGrid}>
               <InputBox label="Event Headline Title"><input name="title" type="text" placeholder="Eastern Conference Finals Warm-up" defaultValue={editingEvent?.title || ""} required /></InputBox>
               <InputBox label="Event Category Type">
-                <select name="category" defaultValue={editingEvent?.category || "Premier League Match"}>
-                  <option>Premier League Match</option>
+                <select name="category" defaultValue={editingEvent?.category || "League Match"}>
+                  <option>League Match</option>
                   <option>Charity Cup Tournament</option>
                   <option>Fan Meet & Greet Session</option>
                   <option>Open Press Practice</option>
@@ -541,8 +630,8 @@ export default function CoachDashboardPage() {
             <div className={styles.formGrid}>
               <InputBox label="Opponent Club Name"><input name="opponentName" type="text" placeholder="Kigali Titans" defaultValue={editingMatch?.opponent_name || ""} required /></InputBox>
               <InputBox label="League Match Context">
-                <select name="league" defaultValue={editingMatch?.league || "Premier League"}>
-                  <option>Premier League</option>
+                <select name="league" defaultValue={editingMatch?.league || "League"}>
+                  <option>League</option>
                   <option>Regular Season</option>
                   <option>Playoffs</option>
                   <option>Pre-season Tournament</option>
@@ -550,7 +639,7 @@ export default function CoachDashboardPage() {
               </InputBox>
               <InputBox label="Match Date"><input name="matchDate" type="date" defaultValue={editingMatch?.match_date || ""} required /></InputBox>
               <InputBox label="Arena Venue"><input name="venue" type="text" placeholder="BK Arena" defaultValue={editingMatch?.venue || ""} /></InputBox>
-              <InputBox label="MAGIC BBC Score"><input name="homeScore" type="number" placeholder="112" defaultValue={editingMatch?.home_score ?? ""} required /></InputBox>
+              <InputBox label="Magic Initiative Rwanda Score"><input name="homeScore" type="number" placeholder="112" defaultValue={editingMatch?.home_score ?? ""} required /></InputBox>
               <InputBox label="Opponent Score"><input name="awayScore" type="number" placeholder="104" defaultValue={editingMatch?.away_score ?? ""} required /></InputBox>
               <InputBox label="Game MVP Player" full><input name="mvpName" type="text" placeholder="Aiden Foster" defaultValue={editingMatch?.mvp_name || ""} /></InputBox>
             </div>
@@ -577,6 +666,61 @@ export default function CoachDashboardPage() {
               setShowPlayerForm(true);
             }}
           />
+
+          {newPlayerCode && (
+            <div style={{
+              backgroundColor: "#e64a1920",
+              border: "1px solid #e64a19",
+              borderRadius: "6px",
+              padding: "16px",
+              marginBottom: "16px",
+              animation: "slideIn 0.3s ease-out"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div>
+                  <p style={{ margin: "0 0 8px 0", fontWeight: "600", color: "#11171e" }}>
+                    ✓ Player Added: <strong>{newPlayerCode.name}</strong>
+                  </p>
+                  <p style={{ margin: "0", fontSize: "13px", color: "#666" }}>
+                    Share this code with the player to register:
+                  </p>
+                  <code style={{
+                    display: "inline-block",
+                    marginTop: "8px",
+                    fontSize: "16px",
+                    fontWeight: "bold",
+                    backgroundColor: "#ffffff",
+                    padding: "8px 12px",
+                    borderRadius: "4px",
+                    letterSpacing: "2px",
+                    fontFamily: "monospace",
+                    color: "#e64a19"
+                  }}>
+                    {newPlayerCode.code}
+                  </code>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(newPlayerCode.code);
+                    alert(`Copied: ${newPlayerCode.code}`);
+                  }}
+                  style={{
+                    background: "#e64a19",
+                    color: "white",
+                    border: "none",
+                    padding: "8px 16px",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    fontWeight: "600",
+                    fontSize: "12px"
+                  }}
+                >
+                  Copy Code
+                </button>
+              </div>
+            </div>
+          )}
 
           {showPlayerForm && (
           <form onSubmit={handlePlayerCreate} key={editingPlayer?.id || "new-player"} className={styles.editorForm}>
@@ -614,6 +758,7 @@ export default function CoachDashboardPage() {
                   <th>No.</th>
                   <th>Position</th>
                   <th>Height</th>
+                  <th>Registration Code</th>
                   <th>Status</th>
                   <th>Actions</th>
                 </tr>
@@ -625,17 +770,42 @@ export default function CoachDashboardPage() {
                     <td>{player.jersey_number}</td>
                     <td>{player.position}</td>
                     <td>{player.height || "-"}</td>
+                    <td>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <code style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f0f0f0", padding: "4px 8px", borderRadius: "4px", cursor: "pointer" }} title="Click to copy" onClick={() => {
+                          navigator.clipboard.writeText(player.registration_code);
+                          alert(`Copied: ${player.registration_code}`);
+                        }}>
+                          {player.registration_code}
+                        </code>
+                        <button
+                          type="button"
+                          title="Copy to clipboard"
+                          onClick={() => {
+                            navigator.clipboard.writeText(player.registration_code);
+                            alert(`Copied: ${player.registration_code}`);
+                          }}
+                          style={{ background: "none", border: "none", cursor: "pointer", color: "#e64a19", fontSize: "14px", padding: "4px" }}
+                        >
+                          📋
+                        </button>
+                      </div>
+                      {player.is_registered && <span style={{ marginLeft: "8px", color: "green", fontSize: "12px" }}>✓ Registered</span>}
+                    </td>
                     <td>{player.status}</td>
                     <td>
                       <RowActions
                         onEdit={() => { setEditingPlayer(player); setShowPlayerForm(true); }}
-                        onDelete={() => handleDelete("player", "players", player.id, () => deletePlayer(player.id))}
+                        onDelete={() => handleDelete("player", "players", player.id, async () => {
+                          const session = await requireFreshCoachSession();
+                          return deletePlayerFully(player.id, session.access_token);
+                        })}
                       />
                     </td>
                   </tr>
                 ))}
                 {dashboardData.players.length === 0 && (
-                  <tr><td colSpan={6}>No players have been added yet.</td></tr>
+                  <tr><td colSpan={7}>No players have been added yet.</td></tr>
                 )}
               </tbody>
             </table>
@@ -655,7 +825,7 @@ export default function CoachDashboardPage() {
           {showNewsForm && (
           <form onSubmit={handleNewsCreate} key={editingNews?.id || "new-news"} className={styles.editorForm}>
             <div className={styles.formGrid}>
-              <InputBox label="News Title"><input name="newsTitle" type="text" placeholder="MAGIC BBC prepares for playoff push" defaultValue={editingNews?.title || ""} required /></InputBox>
+              <InputBox label="News Title"><input name="newsTitle" type="text" placeholder="Magic Initiative Rwanda prepares for playoff push" defaultValue={editingNews?.title || ""} required /></InputBox>
               <InputBox label="Category"><input name="newsCategory" type="text" defaultValue={editingNews?.category || "Club"} required /></InputBox>
               <InputBox label="Feature Image URLs"><input name="imageUrl" type="text" placeholder={'"https://...","https://..."'} defaultValue={editingNews?.image_url || ""} /></InputBox>
               <InputBox label="Upload Feature Images"><input name="newsImages" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple /></InputBox>
@@ -716,7 +886,7 @@ export default function CoachDashboardPage() {
           {showProductForm && (
           <form onSubmit={handleProductCreate} key={editingProduct?.id || "new-product"} className={styles.editorForm}>
             <div className={styles.formGrid}>
-              <InputBox label="Product Name"><input name="productName" type="text" placeholder="MAGIC BBC Black T-Shirt" defaultValue={editingProduct?.name || ""} required /></InputBox>
+              <InputBox label="Product Name"><input name="productName" type="text" placeholder="Magic Initiative Rwanda Black T-Shirt" defaultValue={editingProduct?.name || ""} required /></InputBox>
               <InputBox label="Category"><input name="productCategory" type="text" defaultValue={editingProduct?.category || "T-Shirts"} required /></InputBox>
               <InputBox label="Price"><input name="price" type="number" min="0" step="1" placeholder="18000" defaultValue={editingProduct ? editingProduct.price_cents / 100 : ""} required /></InputBox>
               <InputBox label="Currency">
@@ -787,6 +957,96 @@ export default function CoachDashboardPage() {
           </div>
         </section>
 
+        <section className={`${styles.panel} ${activePanel === "notifications" ? styles.activePanel : ""}`}>
+          <PanelHeader
+            title="Notifications"
+            buttonLabel="Send Notification"
+            onButtonClick={() => {
+              setShowNotificationForm(true);
+            }}
+          />
+
+          {showNotificationForm && (
+          <form onSubmit={handleNotificationCreate} className={styles.editorForm}>
+            <div className={styles.formGrid}>
+              <InputBox label="Select Player">
+                <select 
+                  name="selectedPlayer" 
+                  value={notificationForm.selectedPlayer}
+                  onChange={(e) => setNotificationForm({ ...notificationForm, selectedPlayer: e.target.value })}
+                  required
+                >
+                  <option value="">Choose a player...</option>
+                  {dashboardData.players.map((player) => (
+                    <option key={player.id} value={player.id}>
+                      {player.full_name} (#{player.jersey_number})
+                    </option>
+                  ))}
+                </select>
+              </InputBox>
+              <InputBox label="Duration (Days)">
+                <input 
+                  name="duration" 
+                  type="number" 
+                  min="1" 
+                  max="365"
+                  value={notificationForm.duration}
+                  onChange={(e) => setNotificationForm({ ...notificationForm, duration: Number(e.target.value) })}
+                  required 
+                />
+              </InputBox>
+              <InputBox label="Message" full>
+                <textarea 
+                  name="message"
+                  rows={4} 
+                  placeholder="Type your message to the player..."
+                  value={notificationForm.message}
+                  onChange={(e) => setNotificationForm({ ...notificationForm, message: e.target.value })}
+                  required
+                />
+              </InputBox>
+            </div>
+            <div className={styles.actionBar}>
+              <button type="button" className={styles.secondaryButton} onClick={() => { setShowNotificationForm(false); }}>Cancel</button>
+              <button type="submit" className={styles.primaryButton} disabled={isSaving}>Send Notification</button>
+            </div>
+          </form>
+          )}
+
+          <div className={styles.tableScroll}>
+            <table className={styles.dataTable}>
+              <thead>
+                <tr>
+                  <th>Player</th>
+                  <th>Message</th>
+                  <th>Sent</th>
+                  <th>Expires</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dashboardData.notifications.map((notification) => {
+                  const recipient = dashboardData.players.find(p => p.id === notification.recipient_player_id);
+                  const isExpired = new Date(notification.expires_at) < new Date();
+                  
+                  return (
+                    <tr key={notification.id}>
+                      <td>{recipient?.full_name || "Unknown Player"}</td>
+                      <td>{notification.message.substring(0, 50)}{notification.message.length > 50 ? "..." : ""}</td>
+                      <td>{formatDisplayDate(notification.created_at)}</td>
+                      <td>{formatDisplayDate(notification.expires_at)}</td>
+                      <td>{isExpired ? "Expired" : "Active"}</td>
+                    </tr>
+                  );
+                })}
+                {dashboardData.notifications.length === 0 && (
+                  <tr><td colSpan={5}>No notifications sent yet.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
         <section className={`${styles.panel} ${activePanel === "history" ? styles.activePanel : ""}`}>
           <h2 className={styles.panelHeading}>Match Logs Records</h2>
           <div className={styles.tableScroll}>
@@ -807,7 +1067,7 @@ export default function CoachDashboardPage() {
                     date={formatDisplayDate(match.match_date)}
                     opponent={match.opponent_name || ""}
                     score={`${match.home_score} - ${match.away_score}`}
-                    status={match.home_score >= match.away_score ? "Win" : "Loss"}
+                    status={match.home_score > match.away_score ? "Win" : match.home_score < match.away_score ? "Loss" : "Draw"}
                     mvp={match.mvp_name || "-"}
                   />
                 ))}
@@ -1029,15 +1289,21 @@ function MatchRow({
   date: string;
   opponent: string;
   score: string;
-  status: "Win" | "Loss";
+  status: "Win" | "Loss" | "Draw";
   mvp: string;
 }) {
+  const getBadgeClass = () => {
+    if (status === "Win") return styles.badgeWin;
+    if (status === "Loss") return styles.badgeLoss;
+    return styles.badgeDraw;
+  };
+
   return (
     <tr>
       <td>{date}</td>
       <td>{opponent}</td>
       <td>{score}</td>
-      <td><span className={`${styles.badgeStatus} ${status === "Win" ? styles.badgeWin : styles.badgeLoss}`}>{status}</span></td>
+      <td><span className={`${styles.badgeStatus} ${getBadgeClass()}`}>{status}</span></td>
       <td>{mvp}</td>
     </tr>
   );

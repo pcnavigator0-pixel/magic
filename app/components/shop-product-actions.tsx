@@ -32,7 +32,7 @@ export function ShopProductActions({
   }
 
   const whatsappMessage = [
-    "Hello MAGIC BBC, I would like to order:",
+    "Hello Magic Initiative Rwanda, I would like to order:",
     `- ${name} x1 (${formatPrice(priceCents, currency)})`,
     `Total: ${formatPrice(priceCents, currency)}`,
   ].join("\n");

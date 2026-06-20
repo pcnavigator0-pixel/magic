@@ -9,7 +9,7 @@ export function PublicFooter() {
         <div className="footer-brand">
           <div className="logo-badge">
             <span className="ball">BB</span>
-            <span className="title">MAGIC BBC</span>
+            <span className="title">Magic Initiative Rwanda</span>
           </div>
           <p>Basketball stories, match scores, standings, and team updates for fans who follow every possession.</p>
         </div>

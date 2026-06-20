@@ -10,8 +10,8 @@ export default async function ShopPage() {
   return (
     <PublicPageShell
       eyebrow="Shop"
-      title="MAGIC BBC shop"
-      description="Official merchandise, supporter gear, and club products from MAGIC BBC."
+      title="Magic Initiative Rwanda shop"
+      description="Official merchandise, supporter gear, and club products from Magic Initiative Rwanda."
     >
       <section className="public-grid three-columns shop-grid">
         {data.products.map((product) => (
@@ -19,7 +19,7 @@ export default async function ShopPage() {
             {product.image_url ? (
               <img src={product.image_url} alt={product.name} />
             ) : (
-              <div className="shop-product-placeholder">MAGIC BBC</div>
+              <div className="shop-product-placeholder">Magic Initiative Rwanda</div>
             )}
             <span>{product.category}</span>
             <h2>{product.name}</h2>

@@ -8,7 +8,7 @@ export default async function NewsPage() {
   return (
     <PublicPageShell
       eyebrow="News"
-      title="Latest MAGIC BBC stories"
+      title="Latest Magic Initiative Rwanda stories"
       description="Read every published update, article, and club note in one place."
     >
       <NewsPostList posts={data.news} />

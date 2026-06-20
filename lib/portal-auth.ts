@@ -5,6 +5,7 @@ export type PortalProfile = {
   email: string;
   full_name: string;
   role: PortalRole;
+  player_id?: string | null;
   created_at?: string;
   updated_at?: string;
 };
@@ -116,7 +117,7 @@ export async function signInToPortal(email: string, password: string) {
 
   const profile = await getPortalProfile(auth.user.id, auth.access_token);
   if (!profile) {
-    throw new Error("This account does not have a MAGIC BBC portal role yet.");
+    throw new Error("This account does not have a Magic Initiative Rwanda portal role yet.");
   }
 
   const session: PortalSession = {
@@ -143,7 +144,7 @@ export async function refreshPortalSession(session: PortalSession) {
 
   const profile = await getPortalProfile(auth.user.id, auth.access_token);
   if (!profile) {
-    throw new Error("This account does not have a MAGIC BBC portal role yet.");
+    throw new Error("This account does not have a Magic Initiative Rwanda portal role yet.");
   }
 
   const refreshedSession: PortalSession = {
@@ -174,17 +175,44 @@ export async function getFreshPortalSession() {
   }
 }
 
-export async function registerPortalAccount({
+/**
+ * Registers a player using their registration code.
+ *
+ * Flow:
+ *  1. Check the code via the verify_registration_code() Postgres function
+ *     (anon-callable, never exposes other players' data).
+ *  2. Create the Supabase auth account for the player.
+ *  3. Call the complete_player_registration() Postgres function USING THE
+ *     NEW USER'S OWN ACCESS TOKEN. That function is SECURITY DEFINER and,
+ *     in one atomic transaction, both updates the players row and creates
+ *     the portal_profiles row — so there's no longer a window where the
+ *     auth account exists but isn't linked to a player.
+ */
+export async function registerPlayerWithCode({
+  registrationCode,
+  fullName,
   email,
   password,
-  fullName,
-  role,
 }: {
+  registrationCode: string;
+  fullName: string;
   email: string;
   password: string;
-  fullName: string;
-  role: PortalRole;
 }) {
+  // 0. Verify the code first, before creating any auth account.
+  const { checkRegistrationCode } = await import("./magic-data");
+
+  const codeCheck = await checkRegistrationCode(registrationCode);
+
+  if (codeCheck.status === "not_found") {
+    throw new Error(`Code "${registrationCode}" not found in our system. Please check the code and try again.`);
+  }
+
+  if (codeCheck.status === "already_used") {
+    throw new Error("This registration code has already been used.");
+  }
+
+  // 1. Create the Supabase auth account (only now that the code is valid).
   const auth = await authFetch("signup", {
     method: "POST",
     body: JSON.stringify({
@@ -192,13 +220,55 @@ export async function registerPortalAccount({
       password,
       data: {
         full_name: fullName,
-        role,
+        role: "player",
       },
     }),
   });
 
+  if (!auth.user?.id || !auth.access_token) {
+    throw new Error("Failed to create auth account. Please try again.");
+  }
+
+  // 2. Complete registration via the secure API route, using the NEW
+  //    user's own access token so the database can verify they're
+  //    registering themselves (not someone else's account).
+  let player;
+  try {
+    const completeResponse = await fetch("/api/player-register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${auth.access_token}`,
+      },
+      body: JSON.stringify({
+        registrationCode,
+        fullName,
+        email,
+        authUserId: auth.user.id,
+      }),
+    });
+
+    const result = await completeResponse.json();
+
+    if (!completeResponse.ok) {
+      throw new Error(result.error || "Failed to complete player registration");
+    }
+
+    player = result.player;
+  } catch (error) {
+    throw new Error(
+      `Registration could not be completed: ${error instanceof Error ? error.message : "Unknown error"}. ` +
+      `Your login was created but isn't linked to a player yet — please contact your coach.`
+    );
+  }
+
+  if (!player || !player.is_registered) {
+    throw new Error("Failed to complete player registration. Please contact your coach.");
+  }
+
   return {
-    created: Boolean(auth.user || auth.access_token || auth.refresh_token || auth),
+    success: true,
+    userId: auth.user.id,
   };
 }
 

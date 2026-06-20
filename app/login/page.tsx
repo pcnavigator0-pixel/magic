@@ -5,21 +5,16 @@ import { FormEvent, useEffect, useState } from "react";
 import {
   dashboardPath,
   getStoredPortalSession,
-  registerPortalAccount,
   signInToPortal,
-  type PortalRole,
 } from "@/lib/portal-auth";
 import styles from "./login.module.css";
 
-type PortalMode = "login" | "register";
 type PortalMessage = {
   text: string;
   tone: "success" | "error";
 };
 
 export default function LoginPage() {
-  const [mode, setMode] = useState<PortalMode>("login");
-  const [role, setRole] = useState<PortalRole>("player");
   const [message, setMessage] = useState<PortalMessage | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -38,22 +33,8 @@ export default function LoginPage() {
     const data = new FormData(form);
     const email = String(data.get("email") || "").trim();
     const password = String(data.get("password") || "");
-    const fullName = String(data.get("fullName") || "").trim();
 
     try {
-      if (mode === "register") {
-        await registerPortalAccount({ email, password, fullName, role });
-        form.reset();
-        setRole("player");
-        setMode("login");
-        setMessage({
-          tone: "success",
-          text: "Account created successfully. Please sign in below with your email and password.",
-        });
-
-        return;
-      }
-
       const session = await signInToPortal(email, password);
       window.location.href = dashboardPath(session.profile.role);
     } catch (error) {
@@ -68,73 +49,18 @@ export default function LoginPage() {
 
   return (
     <main className={styles.page}>
-      <Link href="/" className={styles.logo} aria-label="MAGIC BBC home">
+      <Link href="/" className={styles.logo} aria-label="Magic Initiative Rwanda home">
         <span className={styles.ball}>BB</span>
-        <span className={styles.title}>MAGIC BBC</span>
+        <span className={styles.title}>Magic Initiative Rwanda</span>
       </Link>
 
-      <section className={styles.card} aria-label="MAGIC BBC portal login">
-        <div className={styles.toggle} role="tablist" aria-label="Portal action">
-          <button
-            type="button"
-            className={`${styles.toggleButton} ${mode === "login" ? styles.active : ""}`}
-            onClick={() => {
-              setMode("login");
-              setMessage(null);
-            }}
-            aria-pressed={mode === "login"}
-          >
-            Sign In
-          </button>
-          <button
-            type="button"
-            className={`${styles.toggleButton} ${mode === "register" ? styles.active : ""}`}
-            onClick={() => {
-              setMode("register");
-              setMessage(null);
-            }}
-            aria-pressed={mode === "register"}
-          >
-            Register
-          </button>
-        </div>
-
-        <h1 className={styles.heading}>
-          {mode === "register" ? "Create Portal Account" : "MAGIC BBC Portal"}
-        </h1>
+      <section className={styles.card} aria-label="Magic Initiative Rwanda portal login">
+        <h1 className={styles.heading}>Magic Initiative Rwanda Portal</h1>
         <p className={styles.subheading}>
-          {mode === "register"
-            ? "Register as a player or coach. Supabase Auth stores your password securely."
-            : "Sign in once and your role sends you to the correct dashboard."}
+          Sign in once and your role sends you to the correct dashboard.
         </p>
 
         <form onSubmit={handleSubmit}>
-          {mode === "register" && (
-            <>
-              <div className={styles.roleGrid} aria-label="Account role">
-                <button
-                  type="button"
-                  className={`${styles.roleButton} ${role === "player" ? styles.selectedRole : ""}`}
-                  onClick={() => setRole("player")}
-                >
-                  Player
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.roleButton} ${role === "coach" ? styles.selectedRole : ""}`}
-                  onClick={() => setRole("coach")}
-                >
-                  Coach
-                </button>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label htmlFor="fullName">Full Name</label>
-                <input id="fullName" name="fullName" type="text" required placeholder="Your full name" />
-              </div>
-            </>
-          )}
-
           <div className={styles.formGroup}>
             <label htmlFor="email">Email Address</label>
             <input id="email" name="email" type="email" required placeholder="name@domain.com" />
@@ -152,15 +78,13 @@ export default function LoginPage() {
             />
           </div>
 
-          {mode === "login" && (
-            <div className={styles.options}>
-              <label className={styles.checkbox}>
-                <input type="checkbox" />
-                Remember me
-              </label>
-              <a href="#forgot">Forgot Password?</a>
-            </div>
-          )}
+          <div className={styles.options}>
+            <label className={styles.checkbox}>
+              <input type="checkbox" />
+              Remember me
+            </label>
+            <a href="#forgot">Forgot Password?</a>
+          </div>
 
           {message && (
             <p className={`${styles.message} ${styles[message.tone]}`} role="status" aria-live="polite">
@@ -169,8 +93,17 @@ export default function LoginPage() {
           )}
 
           <button type="submit" className={styles.submit} disabled={isSubmitting}>
-            {isSubmitting ? "Please wait..." : mode === "register" ? "Create Account" : "Access Account"}
+            {isSubmitting ? "Please wait..." : "Access Account"}
           </button>
+
+          <div style={{ marginTop: "20px", textAlign: "center", paddingTop: "20px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+            <p style={{ fontSize: "12px", color: "#a0aab2", marginBottom: "12px" }}>
+              Have a registration code from your coach?
+            </p>
+            <Link href="/player-register" style={{ color: "#e64a19", textDecoration: "none", fontWeight: "600", fontSize: "13px" }}>
+              Register as Player with Code →
+            </Link>
+          </div>
         </form>
       </section>
 

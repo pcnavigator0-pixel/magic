@@ -54,7 +54,7 @@ export function NewsPostList({ posts }: NewsPostListProps) {
             <span>{post.category}</span>
             <h2>{post.title}</h2>
             {post.excerpt && <p>{post.excerpt}</p>}
-            <small>{formatDisplayDate(post.published_at)} - MAGIC BBC</small>
+            <small>{formatDisplayDate(post.published_at)} - Magic Initiative Rwanda</small>
           </article>
         ))}
       </section>
@@ -95,7 +95,7 @@ function NewsModal({ post, onClose }: { post: NewsPost; onClose: () => void }) {
         <div className="news-modal-content">
           <div className="news-modal-meta">
             <span>{post.category}</span>
-            <small>{formatDisplayDate(post.published_at)} - MAGIC BBC</small>
+            <small>{formatDisplayDate(post.published_at)} - Magic Initiative Rwanda</small>
           </div>
           <h2 id="news-modal-title">{post.title}</h2>
           {post.excerpt && <p className="news-modal-excerpt">{post.excerpt}</p>}

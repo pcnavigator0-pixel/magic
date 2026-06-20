@@ -236,6 +236,40 @@
   text-transform: uppercase;
 }
 
+.toggleStatsButton {
+  display: none;
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #e2e8ed;
+  border-radius: 8px;
+  background-color: #ffffff;
+  color: #111111;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.toggleStatsButton:first-of-type {
+  margin-bottom: 20px;
+}
+
+.toggleStatsButton:last-of-type {
+  margin-top: 20px;
+}
+
+.toggleStatsButton:hover {
+  background-color: #f4f6f7;
+  border-color: #d0d8df;
+}
+
+.toggleStatsButton i {
+  font-size: 12px;
+}
+
 .panel {
   display: none;
   padding: 35px;
@@ -447,6 +481,11 @@
   color: #c62828;
 }
 
+.badgeDraw {
+  background-color: #fff3e0;
+  color: #e65100;
+}
+
 .settingsProfileRow {
   display: flex;
   align-items: center;
@@ -620,6 +659,10 @@
   .analyticsStrip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .toggleStatsButton {
+    display: none;
+  }
 }
 
 @media (max-width: 620px) {
@@ -641,7 +684,21 @@
     padding: 28px 20px;
   }
 
-  .analyticsStrip,
+  .analyticsStrip {
+    grid-template-columns: 1fr;
+    display: none;
+    margin-bottom: 0;
+  }
+
+  .analyticsStrip.statsVisible {
+    display: grid;
+    margin-bottom: 40px;
+  }
+
+  .toggleStatsButton {
+    display: flex;
+  }
+
   .formGrid {
     grid-template-columns: 1fr;
   }
