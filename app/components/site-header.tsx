@@ -252,6 +252,7 @@ export function SiteHeader() {
   );
 }
 
+
 function buildSearchItems(data: MagicData): SearchItem[] {
   return [
     ...navLinks.map((link) => ({
