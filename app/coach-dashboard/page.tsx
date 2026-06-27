@@ -1122,6 +1122,66 @@ function formatMoney(priceCents: number, currency: string) {
   }).format(priceCents / 100);
 }
 
+/**
+ * Compress an image file using the Canvas API before uploading.
+ *
+ * Strategy:
+ *  - Max dimension: 1280px on the longest side (keeps display crisp on retina
+ *    screens while cutting file size dramatically vs original).
+ *  - Output format: WebP at quality 0.82 — excellent visual quality at
+ *    roughly 60-75% smaller than the equivalent JPEG.
+ *  - GIFs are returned as-is (canvas flattens animations).
+ *  - Falls back to the original file if the Canvas API is unavailable or
+ *    if compression somehow produces a larger blob than the original.
+ */
+async function compressImage(
+  file: File,
+  { maxDimension = 1280, quality = 0.82 }: { maxDimension?: number; quality?: number } = {},
+): Promise<File> {
+  // Skip GIFs — canvas destroys animation frames.
+  if (file.type === "image/gif") return file;
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+
+      const { naturalWidth: w, naturalHeight: h } = img;
+      const scale = Math.min(1, maxDimension / Math.max(w, h));
+      const targetW = Math.round(w * scale);
+      const targetH = Math.round(h * scale);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = targetW;
+      canvas.height = targetH;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { resolve(file); return; }
+
+      ctx.drawImage(img, 0, 0, targetW, targetH);
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob || blob.size >= file.size) {
+            // Compression made it bigger (can happen with tiny PNGs) — keep original.
+            resolve(file);
+            return;
+          }
+          const baseName = file.name.replace(/\.[^.]+$/, "");
+          resolve(new File([blob], `${baseName}.webp`, { type: "image/webp" }));
+        },
+        "image/webp",
+        quality,
+      );
+    };
+
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(file); };
+    img.src = objectUrl;
+  });
+}
+
 async function uploadPhotoFile(fileValue: FormDataEntryValue | null, folder: string, accessToken?: string) {
   if (!(fileValue instanceof File) || fileValue.size === 0) return "";
 
@@ -1129,16 +1189,22 @@ async function uploadPhotoFile(fileValue: FormDataEntryValue | null, folder: str
     throw new Error("Sign in again before uploading a product image.");
   }
 
-  const objectPath = `${folder}/${Date.now()}-${createSlug(fileValue.name.replace(/\.[^.]+$/, "")) || "upload"}${extensionFor(fileValue)}`;
+  // Compress before uploading — converts to WebP ≤ 1280px longest side.
+  const compressed = await compressImage(fileValue);
+
+  const baseName = createSlug(compressed.name.replace(/\.[^.]+$/, "")) || "upload";
+  const ext = compressed.type === "image/webp" ? ".webp" : extensionFor(fileValue);
+  const objectPath = `${folder}/${Date.now()}-${baseName}${ext}`;
+
   const response = await fetch(`${supabaseUrl}/storage/v1/object/${uploadBucket}/${objectPath}`, {
     method: "POST",
     headers: {
       apikey: supabaseKey,
       Authorization: `Bearer ${accessToken}`,
-      "Content-Type": fileValue.type || "application/octet-stream",
+      "Content-Type": compressed.type,
       "x-upsert": "false",
     },
-    body: fileValue,
+    body: compressed,
   });
 
   if (!response.ok) {
