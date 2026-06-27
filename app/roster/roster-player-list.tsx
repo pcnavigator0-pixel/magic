@@ -83,7 +83,9 @@ function PlayerModal({ player, onClose }: { player: Player; onClose: () => void 
 
         <div className="player-modal-media">
           {player.photo_url ? (
-            <img src={player.photo_url} alt={player.full_name} />
+            <div className="product-page-main-image">
+              <img src={player.photo_url} alt={player.full_name} />
+            </div>
           ) : (
             <div className="player-photo-placeholder player-photo-placeholder-large" aria-hidden="true">
               {getInitials(player.full_name)}

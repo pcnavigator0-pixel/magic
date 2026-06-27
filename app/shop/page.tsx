@@ -17,7 +17,9 @@ export default async function ShopPage() {
         {data.products.map((product) => (
           <article className="public-card shop-card" key={product.id}>
             {product.image_url ? (
-              <img src={product.image_url} alt={product.name} />
+              <div className="product-page-main-image">
+                <img src={product.image_url} alt={product.name} />
+              </div>
             ) : (
               <div className="shop-product-placeholder">Magic Initiative Rwanda</div>
             )}

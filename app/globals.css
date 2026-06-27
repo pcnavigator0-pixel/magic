@@ -1812,6 +1812,32 @@ body.modal-open {
   height: 260px;
 }
 
+/* ── Responsive product image viewer ─────────────────────────── */
+.product-page-main-image {
+  display: block;
+  border: none;
+  padding: 0;
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: zoom-in;
+}
+.product-page-main-image img,
+.product-page-side-image img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+  object-position: center;
+  transition: transform 0.35s ease;
+}
+.product-page-main-image:hover img,
+.product-page-side-image:hover img {
+  transform: scale(1.04);
+}
+/* ────────────────────────────────────────────────────────────── */
+
 .shop-product-placeholder {
   display: grid;
   place-items: center;
