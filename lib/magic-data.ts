@@ -205,7 +205,7 @@ export async function getMagicData(accessToken?: string, isCoach = false): Promi
     const [teams, players, events, matches, news, products, coachProfiles, notifications] = await Promise.all([
       restFetch<Team[]>("teams?select=*&order=is_home_team.desc,name.asc"),
       restFetch<Player[]>(playersPath, undefined, accessToken),
-      restFetch<EventItem[]>("events?select=*&order=event_date.asc,event_time.asc"),
+      restFetch<EventItem[]>("events?select=*&order=event_date.desc,event_time.desc"),
       restFetch<Match[]>("matches?select=*&order=match_date.desc&limit=100"),
       restFetch<NewsPost[]>("news_posts?select=*&order=published_at.desc&limit=100"),
       restFetch<ShopProduct[]>("shop_products?select=*&is_published=eq.true&order=is_featured.desc,name.asc&limit=100"),
