@@ -230,6 +230,38 @@ export async function getMagicData(accessToken?: string, isCoach = false): Promi
   }
 }
 
+export async function getAllEvents(): Promise<EventItem[]> {
+  if (!canUseSupabase()) return [];
+
+  const pageSize = 1000;
+  const maxPages = 100;
+  const events: EventItem[] = [];
+
+  try {
+    for (let page = 0; page < maxPages; page += 1) {
+      const from = page * pageSize;
+      const to = from + pageSize - 1;
+      const rows = await restFetch<EventItem[]>(
+        "events?select=*&order=event_date.desc,event_time.desc",
+        {
+          headers: {
+            Range: `${from}-${to}`,
+            "Range-Unit": "items",
+          },
+        },
+      );
+
+      events.push(...rows);
+
+      if (rows.length < pageSize) break;
+    }
+
+    return events;
+  } catch {
+    return [];
+  }
+}
+
 export function createSlug(value: string) {
   return value
     .toLowerCase()
