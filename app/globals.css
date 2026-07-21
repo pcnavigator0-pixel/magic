@@ -1350,6 +1350,7 @@ body.modal-open {
   display: block;
   column-count: 3;
   column-gap: 22px;
+  columns: 260px 3;
 }
 
 .public-card {
@@ -2483,9 +2484,10 @@ body.modal-open {
   .public-empty { width: min(1180px, 92vw); }
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 899px) {
   .public-grid.news-masonry-grid {
     column-count: 2;
+    columns: 260px 2;
     column-gap: 22px;
   }
 }
@@ -2736,6 +2738,7 @@ body.modal-open {
 @media (max-width: 639px) {
   .public-grid.news-masonry-grid {
     column-count: 1;
+    columns: 1;
   }
 
   .news-masonry-grid .news-public-card {
