@@ -115,7 +115,7 @@ export default function Home() {
             <span className="weekly-digest">Weekly Digest</span>
             <h1 className="hero-title">Detailed basketball games news & reviews</h1>
             <p className="hero-description">
-              Consectetur adipiscing elit, sed do eiusmod tempor incididunt dolore magna aliqua.
+              We are committed to developing homegrown talent, fostering teamwork, and empowering the next generation of youth through the transformative power of sports.
             </p>
             <a className="btn-primary" href="/news">Read More</a>
           </div>

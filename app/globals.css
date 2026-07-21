@@ -1536,10 +1536,11 @@ body.modal-open {
   inset: 0;
   z-index: 3;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
-  padding: 18px;
-  background: linear-gradient(180deg, rgba(7, 10, 14, 0) 34%, rgba(7, 10, 14, 0.78) 100%);
+  min-height: 100%;
+  padding: 20px;
+  background: rgba(7, 10, 14, 0.46);
   color: #ffffff;
   font-size: 13px;
   font-weight: 900;
@@ -1568,7 +1569,7 @@ body.modal-open {
 @media (hover: none) {
   .news-card-overlay {
     opacity: 1;
-    background: linear-gradient(180deg, rgba(7, 10, 14, 0) 48%, rgba(7, 10, 14, 0.72) 100%);
+    background: rgba(7, 10, 14, 0.42);
   }
 }
 
