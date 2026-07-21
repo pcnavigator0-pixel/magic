@@ -1,6 +1,8 @@
 import { PublicPageShell } from "@/app/components/public-shell";
 import { formatDisplayDate, getMagicData } from "@/lib/magic-data";
 
+export const dynamic = "force-dynamic";
+
 export default async function MatchesPage() {
   const data = await getMagicData();
 

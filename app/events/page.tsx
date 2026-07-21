@@ -2,6 +2,8 @@ import { PublicPageShell } from "@/app/components/public-shell";
 import { EventList } from "@/app/events/event-list";
 import { getAllEvents } from "@/lib/magic-data";
 
+export const dynamic = "force-dynamic";
+
 export default async function EventsPage() {
   const events = await getAllEvents();
 

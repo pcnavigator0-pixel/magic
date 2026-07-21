@@ -20,8 +20,12 @@ export default function Home() {
   const [metricsStarted, setMetricsStarted] = useState(false);
   const [metrics, setMetrics] = useState([0, 0, 0, 0]);
   const [siteData, setSiteData] = useState<MagicData>(fallbackMagicData);
+  const [recentPostIndex, setRecentPostIndex] = useState(0);
   const metricsRef = useRef<HTMLElement>(null);
   const featuredNews = siteData.news[0];
+  const recentPosts = siteData.news.slice(0, 4);
+  const recentPostCount = recentPosts.length;
+  const rotatingRecentPost = recentPosts[recentPostCount ? recentPostIndex % recentPostCount : 0];
   const miniNews = siteData.news.slice(1, 4);
   const latestMatches = siteData.matches.slice(0, 4);
   const standings = buildStandings(siteData.matches);
@@ -45,6 +49,20 @@ export default function Home() {
       ignore = true;
     };
   }, []);
+
+  useEffect(() => {
+    setRecentPostIndex(0);
+  }, [siteData.news]);
+
+  useEffect(() => {
+    if (recentPostCount <= 1) return;
+
+    const timer = window.setInterval(() => {
+      setRecentPostIndex((index) => (index + 1) % recentPostCount);
+    }, 5200);
+
+    return () => window.clearInterval(timer);
+  }, [recentPostCount]);
 
   useEffect(() => {
     if (!metricsRef.current) return;
@@ -102,17 +120,33 @@ export default function Home() {
             <a className="btn-primary" href="/news">Read More</a>
           </div>
 
-          {featuredNews && <div className="hero-right">
-            <div className="recent-post-card">
+          {rotatingRecentPost && <div className="hero-right">
+            <div className="recent-post-card recent-post-rotator">
               <span className="card-label">Recent post</span>
-              {featuredNews.image_url && <div className="card-img-wrapper">
-                <NewsImageCarousel imageValue={featuredNews.image_url} alt={featuredNews.title} autoAdvanceMs={3400} />
+              <div className="recent-post-frame" key={rotatingRecentPost.id}>
+              {rotatingRecentPost.image_url && <div className="card-img-wrapper">
+                <NewsImageCarousel imageValue={rotatingRecentPost.image_url} alt={rotatingRecentPost.title} autoAdvanceMs={3400} />
               </div>}
               <div className="meta-data">
-                <span className="meta-trending">{featuredNews.category}</span>
+                <span className="meta-trending">{rotatingRecentPost.category}</span>
+                <span className="meta-date">- {formatDisplayDate(rotatingRecentPost.published_at)}</span>
                 <span className="meta-date">• {formatDisplayDate(featuredNews.published_at)}</span>
               </div>
-              <h2 className="card-title">{featuredNews.title}</h2>
+              <h2 className="card-title">{rotatingRecentPost.title}</h2>
+              </div>
+              {recentPosts.length > 1 && (
+                <div className="recent-post-dots" aria-label="Recent posts">
+                  {recentPosts.map((post, index) => (
+                    <button
+                      className={index === recentPostIndex % recentPostCount ? "active" : ""}
+                      type="button"
+                      aria-label={`Show recent post ${index + 1}: ${post.title}`}
+                      onClick={() => setRecentPostIndex(index)}
+                      key={post.id}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>}
         </main>

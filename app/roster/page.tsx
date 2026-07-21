@@ -2,6 +2,8 @@ import { PublicPageShell } from "@/app/components/public-shell";
 import { getMagicData } from "@/lib/magic-data";
 import { RosterPlayerList } from "./roster-player-list";
 
+export const dynamic = "force-dynamic";
+
 export default async function RosterPage() {
   const data = await getMagicData();
 

@@ -1,6 +1,8 @@
 import { PublicPageShell } from "@/app/components/public-shell";
 import { buildStandings, getMagicData } from "@/lib/magic-data";
 
+export const dynamic = "force-dynamic";
+
 export default async function StandingsPage() {
   const data = await getMagicData();
   const standings = buildStandings(data.matches);

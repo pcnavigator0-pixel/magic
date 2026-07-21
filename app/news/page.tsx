@@ -2,6 +2,8 @@ import { PublicPageShell } from "@/app/components/public-shell";
 import { getMagicData } from "@/lib/magic-data";
 import { NewsPostList } from "./news-post-list";
 
+export const dynamic = "force-dynamic";
+
 export default async function NewsPage() {
   const data = await getMagicData();
 

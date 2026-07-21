@@ -139,6 +139,7 @@ async function restFetch<T>(path: string, init?: RequestInit, accessToken?: stri
   try {
     const response = await fetch(`${supabaseUrl}/rest/v1/${path}`, {
       ...init,
+      cache: init?.cache || "no-store",
       headers: {
         apikey: supabaseKey!,
         Authorization: `Bearer ${accessToken || supabaseKey}`,
@@ -178,6 +179,14 @@ async function restFetch<T>(path: string, init?: RequestInit, accessToken?: stri
   }
 }
 
+async function useFallbackOnError<T>(promise: Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await promise;
+  } catch {
+    return fallback;
+  }
+}
+
 /**
  * Fetches site-wide data.
  *
@@ -203,15 +212,15 @@ export async function getMagicData(accessToken?: string, isCoach = false): Promi
       : "players_public?select=*&order=jersey_number.asc";
 
     const [teams, players, events, matches, news, products, coachProfiles, notifications] = await Promise.all([
-      restFetch<Team[]>("teams?select=*&order=is_home_team.desc,name.asc"),
-      restFetch<Player[]>(playersPath, undefined, accessToken),
-      restFetch<EventItem[]>("events?select=*&order=event_date.desc,event_time.desc"),
-      restFetch<Match[]>("matches?select=*&order=match_date.desc&limit=100"),
-      restFetch<NewsPost[]>("news_posts?select=*&order=published_at.desc&limit=100"),
-      restFetch<ShopProduct[]>("shop_products?select=*&is_published=eq.true&order=is_featured.desc,name.asc&limit=100"),
-      restFetch<CoachProfile[]>("coach_profiles?select=*&order=updated_at.desc&limit=1"),
+      useFallbackOnError(restFetch<Team[]>("teams?select=*&order=is_home_team.desc,name.asc"), []),
+      useFallbackOnError(restFetch<Player[]>(playersPath, undefined, accessToken), []),
+      useFallbackOnError(restFetch<EventItem[]>("events?select=*&order=event_date.desc,event_time.desc"), []),
+      useFallbackOnError(restFetch<Match[]>("matches?select=*&order=match_date.desc&limit=100"), []),
+      useFallbackOnError(restFetch<NewsPost[]>("news_posts?select=*&order=published_at.desc&limit=100"), []),
+      useFallbackOnError(restFetch<ShopProduct[]>("shop_products?select=*&is_published=eq.true&order=is_featured.desc,name.asc&limit=100"), []),
+      useFallbackOnError(restFetch<CoachProfile[]>("coach_profiles?select=*&order=updated_at.desc&limit=1"), []),
       accessToken
-        ? restFetch<Notification[]>("notifications?select=*&expires_at=gt.now()&order=created_at.desc", undefined, accessToken)
+        ? useFallbackOnError(restFetch<Notification[]>("notifications?select=*&expires_at=gt.now()&order=created_at.desc", undefined, accessToken), [])
         : Promise.resolve<Notification[]>([]),
     ]);
 

@@ -621,6 +621,47 @@ body.modal-open {
   margin-left: auto;
 }
 
+.recent-post-frame {
+  animation: recentPostIn 0.55s ease both;
+}
+
+.recent-post-frame .meta-date + .meta-date {
+  display: none;
+}
+
+.recent-post-dots {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.recent-post-dots button {
+  width: 8px;
+  height: 8px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.42);
+  cursor: pointer;
+  transition: width 0.25s ease, background 0.25s ease;
+}
+
+.recent-post-dots button.active {
+  width: 24px;
+  background: var(--primary-orange);
+}
+
+@keyframes recentPostIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .card-label {
   font-size: 12px;
   font-weight: 700;
@@ -631,7 +672,10 @@ body.modal-open {
 
 .card-img-wrapper {
   width: 100%;
+  aspect-ratio: 16 / 10;
+  min-height: 190px;
   border-radius: 8px;
+  background: #111820;
   overflow: hidden;
   margin-bottom: 15px;
   cursor: zoom-in;
@@ -639,7 +683,7 @@ body.modal-open {
 
 .card-img-wrapper img {
   width: 100%;
-  height: auto;
+  height: 100%;
   display: block;
   object-fit: contain;
   object-position: center;
@@ -1408,12 +1452,16 @@ body.modal-open {
 }
 
 .card-img-wrapper .news-carousel {
-  aspect-ratio: unset;
+  width: 100%;
+  aspect-ratio: auto;
   max-height: unset;
   height: 100%;
+  border-radius: 8px;
+  background: #111820;
 }
 .card-img-wrapper .news-carousel img {
   height: 100%;
+  object-fit: contain;
 }
 
 .article-featured .news-carousel.main-img {
