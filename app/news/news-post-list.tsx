@@ -35,7 +35,7 @@ export function NewsPostList({ posts }: NewsPostListProps) {
 
   return (
     <>
-      <section className="public-grid three-columns">
+      <section className="public-grid news-masonry-grid">
         {posts.map((post) => (
           <article
             className="public-card news-public-card news-card-button"
@@ -51,10 +51,12 @@ export function NewsPostList({ posts }: NewsPostListProps) {
             }}
           >
             <NewsImageCarousel imageValue={post.image_url} alt={post.title} />
-            <span>{post.category}</span>
-            <h2>{post.title}</h2>
-            {post.excerpt && <p>{post.excerpt}</p>}
-            <small>{formatDisplayDate(post.published_at)} - Magic Initiative Rwanda</small>
+            <div className="news-card-body">
+              <span>{post.category}</span>
+              <h2>{post.title}</h2>
+              {post.excerpt && <p>{post.excerpt}</p>}
+              <small>{formatDisplayDate(post.published_at)} - Magic Initiative Rwanda</small>
+            </div>
           </article>
         ))}
       </section>
