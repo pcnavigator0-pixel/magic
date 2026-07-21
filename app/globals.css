@@ -1540,13 +1540,13 @@ body.modal-open {
   justify-content: center;
   min-height: 100%;
   padding: 20px;
-  background: rgba(7, 10, 14, 0.46);
   color: #ffffff;
   font-size: 13px;
   font-weight: 900;
   letter-spacing: 0.7px;
   opacity: 0;
   text-transform: uppercase;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.75);
   transition: opacity 0.25s ease;
   pointer-events: none;
 }
@@ -1568,8 +1568,7 @@ body.modal-open {
 
 @media (hover: none) {
   .news-card-overlay {
-    opacity: 1;
-    background: rgba(7, 10, 14, 0.42);
+    opacity: 0;
   }
 }
 
