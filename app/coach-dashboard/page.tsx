@@ -269,16 +269,16 @@ export default function CoachDashboardPage() {
         slug: createSlug(title),
         category: String(data.get("newsCategory")),
         excerpt: String(data.get("excerpt") || "") || null,
-        content: String(data.get("content") || "") || null,
+        content: [{ type: "paragraph" as const, text: String(data.get("content") || "") || "Full story details will be added soon." }],
         image_url: formatImageUrlsForStorage([...uploadedImageUrls, ...manualImageUrls]),
         published_at: editingNews?.published_at || new Date().toISOString(),
         is_published: true,
       };
 
       if (editingNews) {
-        await updateNewsPost(editingNews.id, payload);
+        await updateNewsPost(editingNews.id, payload, session.access_token);
       } else {
-        await insertNewsPost(payload);
+        await insertNewsPost(payload, session.access_token);
       }
       await refreshDashboard();
       setEditingNews(null);
@@ -817,27 +817,9 @@ export default function CoachDashboardPage() {
             title="News"
             buttonLabel="Publish News"
             onButtonClick={() => {
-              setEditingNews(null);
-              setShowNewsForm(true);
+              window.location.href = "/portal/news/new";
             }}
           />
-
-          {showNewsForm && (
-          <form onSubmit={handleNewsCreate} key={editingNews?.id || "new-news"} className={styles.editorForm}>
-            <div className={styles.formGrid}>
-              <InputBox label="News Title"><input name="newsTitle" type="text" placeholder="Magic Initiative Rwanda prepares for playoff push" defaultValue={editingNews?.title || ""} required /></InputBox>
-              <InputBox label="Category"><input name="newsCategory" type="text" defaultValue={editingNews?.category || "Club"} required /></InputBox>
-              <InputBox label="Feature Image URLs"><input name="imageUrl" type="text" placeholder={'"https://...","https://..."'} defaultValue={editingNews?.image_url || ""} /></InputBox>
-              <InputBox label="Upload Feature Images"><input name="newsImages" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple /></InputBox>
-              <InputBox label="Excerpt"><input name="excerpt" type="text" placeholder="Short summary for cards..." defaultValue={editingNews?.excerpt || ""} /></InputBox>
-              <InputBox label="Content" full><textarea name="content" rows={5} placeholder="Full article text..." defaultValue={editingNews?.content || ""} /></InputBox>
-            </div>
-            <div className={styles.actionBar}>
-              <button type="button" className={styles.secondaryButton} onClick={() => { setShowNewsForm(false); setEditingNews(null); }}>Cancel</button>
-              <button type="submit" className={styles.primaryButton} disabled={isSaving}>{editingNews ? "Update News" : "Publish News"}</button>
-            </div>
-          </form>
-          )}
 
           <div className={styles.tableScroll}>
             <table className={styles.dataTable}>
@@ -859,8 +841,11 @@ export default function CoachDashboardPage() {
                     <td>{post.is_published ? "Published" : "Draft"}</td>
                     <td>
                       <RowActions
-                        onEdit={() => { setEditingNews(post); setShowNewsForm(true); }}
-                        onDelete={() => handleDelete("news post", "news", post.id, () => deleteNewsPost(post.id))}
+                        onEdit={() => { window.location.href = `/portal/news/${post.id}/edit`; }}
+                        onDelete={() => handleDelete("news post", "news", post.id, async () => {
+                          const session = await requireFreshCoachSession();
+                          return deleteNewsPost(post.id, session.access_token);
+                        })}
                       />
                     </td>
                   </tr>

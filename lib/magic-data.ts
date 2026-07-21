@@ -52,11 +52,15 @@ export type NewsPost = {
   slug: string;
   category: string;
   excerpt: string | null;
-  content: string | null;
+  content: ArticleBlock[] | string | null;
   image_url: string | null;
   published_at: string;
   is_published: boolean;
 };
+
+export type ArticleBlock =
+  | { type: "paragraph"; text: string }
+  | { type: "image"; url: string; align: "left" | "right"; caption: string | null };
 
 export type CoachProfile = {
   id: string;
@@ -271,6 +275,28 @@ export async function getAllEvents(): Promise<EventItem[]> {
   }
 }
 
+export async function getNewsPostBySlug(slug: string): Promise<NewsPost | null> {
+  if (!canUseSupabase()) return null;
+
+  const posts = await restFetch<NewsPost[]>(
+    `news_posts?slug=eq.${encodeURIComponent(slug)}&is_published=eq.true&select=*&limit=1`,
+  );
+
+  return posts[0] || null;
+}
+
+export async function getNewsPostById(id: string, accessToken?: string): Promise<NewsPost | null> {
+  if (!canUseSupabase()) return null;
+
+  const posts = await restFetch<NewsPost[]>(
+    `news_posts?id=eq.${encodeURIComponent(id)}&select=*&limit=1`,
+    undefined,
+    accessToken,
+  );
+
+  return posts[0] || null;
+}
+
 export function createSlug(value: string) {
   return value
     .toLowerCase()
@@ -360,12 +386,12 @@ export async function insertMatch(payload: Omit<Match, "id">) {
   });
 }
 
-export async function insertNewsPost(payload: Omit<NewsPost, "id">) {
+export async function insertNewsPost(payload: Omit<NewsPost, "id">, accessToken?: string) {
   return restFetch<NewsPost[]>("news_posts", {
     method: "POST",
     headers: { Prefer: "return=representation" },
     body: JSON.stringify(payload),
-  });
+  }, accessToken);
 }
 
 export async function insertShopProduct(payload: Omit<ShopProduct, "id">, accessToken?: string) {
@@ -442,12 +468,12 @@ export async function updateMatch(id: string, payload: Omit<Match, "id">) {
   });
 }
 
-export async function updateNewsPost(id: string, payload: Omit<NewsPost, "id">) {
+export async function updateNewsPost(id: string, payload: Omit<NewsPost, "id">, accessToken?: string) {
   return restFetch<NewsPost[]>(`news_posts?id=eq.${id}`, {
     method: "PATCH",
     headers: { Prefer: "return=representation" },
     body: JSON.stringify(payload),
-  });
+  }, accessToken);
 }
 
 export async function updateShopProduct(id: string, payload: Omit<ShopProduct, "id">, accessToken?: string) {
@@ -514,8 +540,8 @@ export async function deleteMatch(id: string) {
   return deleteRow<Match>("matches", id);
 }
 
-export async function deleteNewsPost(id: string) {
-  return deleteRow<NewsPost>("news_posts", id);
+export async function deleteNewsPost(id: string, accessToken?: string) {
+  return deleteRow<NewsPost>("news_posts", id, accessToken);
 }
 
 export async function deleteShopProduct(id: string, accessToken?: string) {
