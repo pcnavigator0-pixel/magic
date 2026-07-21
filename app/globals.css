@@ -1353,6 +1353,13 @@ body.modal-open {
   columns: 260px 3;
 }
 
+.public-grid.roster-masonry-grid {
+  display: block;
+  column-count: 3;
+  column-gap: 22px;
+  columns: 260px 3;
+}
+
 .public-card {
   border: 1px solid #e2e8ed;
   border-radius: 8px;
@@ -1379,6 +1386,57 @@ body.modal-open {
   max-height: 260px;
   object-fit: cover;
   object-position: center top;
+}
+
+.roster-masonry-grid .player-public-card {
+  display: inline-block;
+  width: 100%;
+  margin-bottom: 22px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  vertical-align: top;
+}
+
+.roster-masonry-grid .player-public-card img {
+  aspect-ratio: auto;
+  max-height: none;
+  height: auto;
+  object-fit: contain;
+}
+
+.roster-masonry-grid .player-photo-placeholder {
+  min-height: 220px;
+}
+
+.player-public-card .player-card-body {
+  padding: 18px 20px 20px;
+}
+
+.player-public-card .player-card-body span,
+.player-public-card .player-card-body h2,
+.player-public-card .player-card-body p,
+.player-public-card .player-card-body small {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.player-public-card .player-card-body span {
+  display: block;
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+
+.player-public-card .player-card-body h2 {
+  margin-top: 0;
+  overflow-wrap: anywhere;
+}
+
+.player-public-card .player-card-body p {
+  margin-top: 0;
+}
+
+.player-public-card .player-card-body small {
+  margin-bottom: 0;
 }
 
 .player-card-button {
@@ -2485,7 +2543,8 @@ body.modal-open {
 }
 
 @media (max-width: 899px) {
-  .public-grid.news-masonry-grid {
+  .public-grid.news-masonry-grid,
+  .public-grid.roster-masonry-grid {
     column-count: 2;
     columns: 260px 2;
     column-gap: 22px;
@@ -2666,6 +2725,9 @@ body.modal-open {
   .public-grid.news-masonry-grid {
     column-gap: 18px;
   }
+  .public-grid.roster-masonry-grid {
+    column-gap: 18px;
+  }
   .public-hero { padding: 120px 5% 64px; }
   .public-hero h1 { font-size: clamp(30px, 7vw, 52px); }
   .public-hero p { font-size: 15px; }
@@ -2736,22 +2798,26 @@ body.modal-open {
 }
 
 @media (max-width: 639px) {
-  .public-grid.news-masonry-grid {
+  .public-grid.news-masonry-grid,
+  .public-grid.roster-masonry-grid {
     column-count: 1;
     columns: 1;
   }
 
-  .news-masonry-grid .news-public-card {
+  .news-masonry-grid .news-public-card,
+  .roster-masonry-grid .player-public-card {
     display: block;
     width: 100%;
     margin-bottom: 18px;
   }
 
-  .news-public-card .news-card-body {
+  .news-public-card .news-card-body,
+  .player-public-card .player-card-body {
     padding: 16px 18px 18px;
   }
 
-  .news-public-card .news-card-body h2 {
+  .news-public-card .news-card-body h2,
+  .player-public-card .player-card-body h2 {
     font-size: 20px;
     line-height: 1.3;
   }

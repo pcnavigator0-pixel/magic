@@ -34,7 +34,7 @@ export function RosterPlayerList({ players }: RosterPlayerListProps) {
 
   return (
     <>
-      <section className="public-grid four-columns">
+      <section className="public-grid roster-masonry-grid">
         {players.map((player) => (
           <button
             className="public-card player-public-card player-card-button"
@@ -49,10 +49,12 @@ export function RosterPlayerList({ players }: RosterPlayerListProps) {
                 {getInitials(player.full_name)}
               </div>
             )}
-            <span>#{player.jersey_number} - {player.position}</span>
-            <h2>{player.full_name}</h2>
-            {player.bio && <p>{player.bio}</p>}
-            <small>{player.status}</small>
+            <div className="player-card-body">
+              <span>#{player.jersey_number} - {player.position}</span>
+              <h2>{player.full_name}</h2>
+              {player.bio && <p>{player.bio}</p>}
+              <small>{player.status}</small>
+            </div>
           </button>
         ))}
       </section>
