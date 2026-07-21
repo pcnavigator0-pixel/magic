@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { normalizeArticleBlocks } from "@/app/components/article-body";
 import { EventCountdown } from "@/app/components/event-countdown";
 import {
   fallbackMagicData,
@@ -13,6 +14,15 @@ import {
 } from "@/lib/magic-data";
 import { clearPortalSession, getStoredPortalSession, type PortalSession } from "@/lib/portal-auth";
 import styles from "./player-dashboard.module.css";
+
+function getNewsPreview(post: MagicData["news"][number]) {
+  if (post.excerpt?.trim()) {
+    return post.excerpt;
+  }
+
+  const paragraph = normalizeArticleBlocks(post.content, post.excerpt).find((block) => block.type === "paragraph");
+  return paragraph?.text.substring(0, 150);
+}
 
 export default function PlayerDashboardPage() {
   const [session, setSession] = useState<PortalSession | null>(null);
@@ -279,7 +289,7 @@ export default function PlayerDashboardPage() {
                           <span className={styles.newsDate}>{formatDisplayDate(post.published_at)}</span>
                         </div>
                         <h4>{post.title}</h4>
-                        <p>{post.excerpt || post.content?.substring(0, 150)}</p>
+                        <p>{getNewsPreview(post)}</p>
                       </div>
                     </div>
                   ))
