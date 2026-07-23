@@ -169,7 +169,7 @@ export default function Home() {
               key={match.id}
               date={formatDisplayDate(match.match_date)}
               score={`${match.home_score} - ${match.away_score}`}
-              teams={["Magic Initiative Rwanda", match.opponent_name].filter(Boolean).join(" - ")}
+              teams={[match.home_team?.name || "Magic Initiative Rwanda", match.opponent_name].filter(Boolean).join(" - ")}
               league={match.league}
               location={match.venue}
               left="#E64A19"

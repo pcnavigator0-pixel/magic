@@ -17,14 +17,12 @@ import {
   getMagicData,
   insertCoachProfile,
   insertEvent,
-  insertMatch,
   insertNewsPost,
   insertNotification,
   insertPlayer,
   insertShopProduct,
   updateCoachProfile,
   updateEvent,
-  updateMatch,
   updateNewsPost,
   updatePlayer,
   updateShopProduct,
@@ -66,7 +64,6 @@ export default function CoachDashboardPage() {
   const [formError, setFormError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [showEventForm, setShowEventForm] = useState(false);
-  const [showMatchForm, setShowMatchForm] = useState(false);
   const [showPlayerForm, setShowPlayerForm] = useState(false);
   const [showNewsForm, setShowNewsForm] = useState(false);
   const [showProductForm, setShowProductForm] = useState(false);
@@ -78,7 +75,6 @@ export default function CoachDashboardPage() {
     duration: 7,
   });
   const [editingEvent, setEditingEvent] = useState<EventItem | null>(null);
-  const [editingMatch, setEditingMatch] = useState<Match | null>(null);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [editingNews, setEditingNews] = useState<NewsPost | null>(null);
   const [editingProduct, setEditingProduct] = useState<ShopProduct | null>(null);
@@ -189,34 +185,6 @@ export default function CoachDashboardPage() {
       setShowEventForm(false);
       form.reset();
     }, editingEvent ? "Event updated in Supabase." : "Event saved to Supabase and published.");
-  }
-
-  async function handleMatchCreate(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const form = event.currentTarget;
-    const payload = {
-      match_date: String(data.get("matchDate")),
-      opponent_name: String(data.get("opponentName")),
-      home_score: Number(data.get("homeScore") || 0),
-      away_score: Number(data.get("awayScore") || 0),
-      venue: String(data.get("venue") || "") || null,
-      league: String(data.get("league")),
-      mvp_name: String(data.get("mvpName") || "") || null,
-      status: "final" as const,
-    };
-
-    await runDashboardAction(async () => {
-      if (editingMatch) {
-        await updateMatch(editingMatch.id, payload);
-      } else {
-        await insertMatch(payload);
-      }
-      await refreshDashboard();
-      setEditingMatch(null);
-      setShowMatchForm(false);
-      form.reset();
-    }, editingMatch ? "Match updated in Supabase." : "Match saved to Supabase and standings updated.");
   }
 
   async function handlePlayerCreate(event: FormEvent<HTMLFormElement>) {
@@ -619,40 +587,12 @@ export default function CoachDashboardPage() {
           <PanelHeader
             title="Matches"
             buttonLabel="Add Match"
-            onButtonClick={() => {
-              setEditingMatch(null);
-              setShowMatchForm(true);
-            }}
+            buttonHref="/coach-dashboard/matches/new"
           />
-
-          {showMatchForm && (
-          <form onSubmit={handleMatchCreate} key={editingMatch?.id || "new-match"} className={styles.editorForm}>
-            <div className={styles.formGrid}>
-              <InputBox label="Opponent Club Name"><input name="opponentName" type="text" placeholder="Kigali Titans" defaultValue={editingMatch?.opponent_name || ""} required /></InputBox>
-              <InputBox label="League Match Context">
-                <select name="league" defaultValue={editingMatch?.league || "League"}>
-                  <option>League</option>
-                  <option>Regular Season</option>
-                  <option>Playoffs</option>
-                  <option>Pre-season Tournament</option>
-                </select>
-              </InputBox>
-              <InputBox label="Match Date"><input name="matchDate" type="date" defaultValue={editingMatch?.match_date || ""} required /></InputBox>
-              <InputBox label="Arena Venue"><input name="venue" type="text" placeholder="BK Arena" defaultValue={editingMatch?.venue || ""} /></InputBox>
-              <InputBox label="Magic Initiative Rwanda Score"><input name="homeScore" type="number" placeholder="112" defaultValue={editingMatch?.home_score ?? ""} required /></InputBox>
-              <InputBox label="Opponent Score"><input name="awayScore" type="number" placeholder="104" defaultValue={editingMatch?.away_score ?? ""} required /></InputBox>
-              <InputBox label="Game MVP Player" full><input name="mvpName" type="text" placeholder="Aiden Foster" defaultValue={editingMatch?.mvp_name || ""} /></InputBox>
-            </div>
-            <div className={styles.actionBar}>
-              <button type="button" className={styles.secondaryButton} onClick={() => { setShowMatchForm(false); setEditingMatch(null); }}>Cancel</button>
-              <button type="submit" className={styles.primaryButton} disabled={isSaving}>{editingMatch ? "Update Match" : "Commit Match Scores"}</button>
-            </div>
-          </form>
-          )}
 
           <EditableMatchesTable
             matches={dashboardData.matches}
-            onEdit={(match) => { setEditingMatch(match); setShowMatchForm(true); }}
+            onEdit={(match) => { window.location.href = `/coach-dashboard/matches/new?matchId=${encodeURIComponent(match.id)}`; }}
             onDelete={(match) => handleDelete("match", "matches", match.id, () => deleteMatch(match.id))}
           />
         </section>
@@ -1050,7 +990,7 @@ export default function CoachDashboardPage() {
                   <MatchRow
                     key={match.id}
                     date={formatDisplayDate(match.match_date)}
-                    opponent={match.opponent_name || ""}
+                    opponent={`${match.home_team?.name || "Magic Initiative Rwanda"} vs ${match.opponent_name || "Opponent"}`}
                     score={`${match.home_score} - ${match.away_score}`}
                     status={match.home_score > match.away_score ? "Win" : match.home_score < match.away_score ? "Loss" : "Draw"}
                     mvp={match.mvp_name || "-"}
@@ -1241,16 +1181,24 @@ function PanelHeader({
   title,
   buttonLabel,
   onButtonClick,
+  buttonHref,
 }: {
   title: string;
   buttonLabel: string;
-  onButtonClick: () => void;
+  onButtonClick?: () => void;
+  buttonHref?: string;
 }) {
   return (
     <div className={styles.panelHeader}>
-      <button type="button" className={styles.primaryButton} onClick={onButtonClick}>
-        {buttonLabel}
-      </button>
+      {buttonHref ? (
+        <Link href={buttonHref} className={styles.primaryButton}>
+          {buttonLabel}
+        </Link>
+      ) : (
+        <button type="button" className={styles.primaryButton} onClick={onButtonClick}>
+          {buttonLabel}
+        </button>
+      )}
       <h2 className={styles.panelHeading}>{title}</h2>
     </div>
   );
@@ -1286,8 +1234,11 @@ function EditableMatchesTable({
         <thead>
           <tr>
             <th>Date</th>
+            <th>Time</th>
+            <th>Magic Team</th>
             <th>Opponent</th>
             <th>Score</th>
+            <th>Status</th>
             <th>League</th>
             <th>MVP</th>
             <th>Actions</th>
@@ -1297,15 +1248,18 @@ function EditableMatchesTable({
           {matches.map((match) => (
             <tr key={match.id}>
               <td>{formatDisplayDate(match.match_date)}</td>
+              <td>{match.match_time ? match.match_time.slice(0, 5) : "-"}</td>
+              <td>{match.home_team?.name || "Magic Initiative Rwanda"}</td>
               <td>{match.opponent_name || "-"}</td>
               <td>{match.home_score} - {match.away_score}</td>
+              <td>{match.status}</td>
               <td>{match.league}</td>
               <td>{match.mvp_name || "-"}</td>
               <td><RowActions onEdit={() => onEdit(match)} onDelete={() => onDelete(match)} /></td>
             </tr>
           ))}
           {matches.length === 0 && (
-            <tr><td colSpan={6}>No matches have been added yet.</td></tr>
+            <tr><td colSpan={9}>No matches have been added yet.</td></tr>
           )}
         </tbody>
       </table>

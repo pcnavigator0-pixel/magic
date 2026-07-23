@@ -386,6 +386,9 @@
 }
 
 .primaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 0;
   border-radius: 30px;
   background-color: #e64a19;
@@ -396,6 +399,7 @@
   text-transform: uppercase;
   letter-spacing: 1px;
   cursor: pointer;
+  text-decoration: none;
   transition: background 0.25s;
 }
 

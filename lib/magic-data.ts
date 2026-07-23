@@ -37,13 +37,40 @@ export type EventItem = {
 export type Match = {
   id: string;
   match_date: string;
+  match_time?: string | null;
+  home_team_id?: string | null;
+  away_team_id?: string | null;
+  home_team?: Team | null;
   opponent_name: string | null;
   home_score: number;
   away_score: number;
   venue: string | null;
   league: string;
+  mvp_player_id?: string | null;
   mvp_name: string | null;
-  status: "scheduled" | "final";
+  status: "scheduled" | "live" | "final" | "canceled";
+  status_details?: string | null;
+  current_quarter?: number;
+  quarter_seconds_remaining?: number;
+  clock_status?: "not_started" | "running" | "paused" | "ended";
+  clock_started_at?: string | null;
+  live_revision?: number;
+};
+
+export type MatchEvent = {
+  id: string;
+  match_id: string;
+  event_type: "score" | "clock" | "status" | "quarter" | "note";
+  team_side: "home" | "away" | null;
+  points: number | null;
+  home_score: number;
+  away_score: number;
+  quarter: number;
+  seconds_remaining: number;
+  clock_status: "not_started" | "running" | "paused" | "ended";
+  note: string | null;
+  created_by?: string | null;
+  created_at: string;
 };
 
 export type NewsPost = {
@@ -177,8 +204,6 @@ async function restFetch<T>(path: string, init?: RequestInit, accessToken?: stri
 
     return JSON.parse(text) as T;
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch from Supabase';
-    console.error(`[restFetch] Error fetching ${path}:`, message);
     throw error;
   }
 }
@@ -219,7 +244,7 @@ export async function getMagicData(accessToken?: string, isCoach = false): Promi
       useFallbackOnError(restFetch<Team[]>("teams?select=*&order=is_home_team.desc,name.asc"), []),
       useFallbackOnError(restFetch<Player[]>(playersPath, undefined, accessToken), []),
       useFallbackOnError(restFetch<EventItem[]>("events?select=*&order=event_date.desc,event_time.desc"), []),
-      useFallbackOnError(restFetch<Match[]>("matches?select=*&order=match_date.desc&limit=100"), []),
+      useFallbackOnError(restFetch<Match[]>("matches?select=*,home_team:teams!matches_home_team_id_fkey(*)&order=match_date.desc&limit=100"), []),
       useFallbackOnError(restFetch<NewsPost[]>("news_posts?select=*&order=published_at.desc&limit=100"), []),
       useFallbackOnError(restFetch<ShopProduct[]>("shop_products?select=*&is_published=eq.true&order=is_featured.desc,name.asc&limit=100"), []),
       useFallbackOnError(restFetch<CoachProfile[]>("coach_profiles?select=*&order=updated_at.desc&limit=1"), []),
@@ -378,12 +403,20 @@ export async function insertPlayer(payload: Omit<Player, "id" | "registration_co
   }, accessToken);
 }
 
-export async function insertMatch(payload: Omit<Match, "id">) {
+export async function insertMatch(payload: Omit<Match, "id">, accessToken?: string) {
   return restFetch<Match[]>("matches", {
     method: "POST",
     headers: { Prefer: "return=representation" },
     body: JSON.stringify(payload),
-  });
+  }, accessToken);
+}
+
+export async function insertMatchEvent(payload: Omit<MatchEvent, "id" | "created_at">, accessToken?: string) {
+  return restFetch<MatchEvent[]>("match_events", {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify(payload),
+  }, accessToken);
 }
 
 export async function insertNewsPost(payload: Omit<NewsPost, "id">, accessToken?: string) {
@@ -460,12 +493,12 @@ export async function updatePlayer(id: string, payload: Omit<Player, "id" | "reg
   return updatedRows;
 }
 
-export async function updateMatch(id: string, payload: Omit<Match, "id">) {
+export async function updateMatch(id: string, payload: Partial<Omit<Match, "id">>, accessToken?: string) {
   return restFetch<Match[]>(`matches?id=eq.${id}`, {
     method: "PATCH",
     headers: { Prefer: "return=representation" },
     body: JSON.stringify(payload),
-  });
+  }, accessToken);
 }
 
 export async function updateNewsPost(id: string, payload: Omit<NewsPost, "id">, accessToken?: string) {
@@ -536,8 +569,8 @@ export async function deletePlayer(id: string, accessToken?: string) {
   return deleteRow<Player>("players", id, accessToken);
 }
 
-export async function deleteMatch(id: string) {
-  return deleteRow<Match>("matches", id);
+export async function deleteMatch(id: string, accessToken?: string) {
+  return deleteRow<Match>("matches", id, accessToken);
 }
 
 export async function deleteNewsPost(id: string, accessToken?: string) {
