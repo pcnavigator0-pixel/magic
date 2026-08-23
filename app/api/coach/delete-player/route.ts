@@ -19,8 +19,8 @@ export async function POST(request: Request) {
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    if (!supabaseUrl || !supabaseAnonKey || !serviceRoleKey) {
-      console.error("[Delete Player] Missing Supabase environment variables (is SUPABASE_SERVICE_ROLE_KEY set?)");
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error("[Delete Player] Missing Supabase URL or anon key.");
       return new Response(JSON.stringify({ error: "Server configuration error" }), { status: 500 });
     }
 
@@ -40,9 +40,12 @@ export async function POST(request: Request) {
       return new Response(JSON.stringify({ error: "Only coaches can remove players." }), { status: 403 });
     }
 
-    const serviceHeaders = {
-      apikey: serviceRoleKey,
-      Authorization: `Bearer ${serviceRoleKey}`,
+    // Database cleanup can use the verified coach token when the Vercel
+    // service-role variable is unavailable. The service role is only needed
+    // for deleting an auth.users account, never for an unregistered player.
+    const databaseHeaders = {
+      apikey: serviceRoleKey || supabaseAnonKey,
+      Authorization: serviceRoleKey ? `Bearer ${serviceRoleKey}` : authHeader,
       "Content-Type": "application/json",
     };
 
@@ -51,7 +54,7 @@ export async function POST(request: Request) {
     const lookupPlayer = async (filter: string) => {
       const response = await fetch(
         `${supabaseUrl}/rest/v1/players?${filter}&select=id,auth_user_id,registration_code&limit=1`,
-        { headers: serviceHeaders, cache: "no-store" },
+        { headers: databaseHeaders, cache: "no-store" },
       );
       const body = await response.json().catch(() => null);
 
@@ -76,7 +79,7 @@ export async function POST(request: Request) {
     const deleteRows = async (table: string, filter: string) => {
       const response = await fetch(
         `${supabaseUrl}/rest/v1/${table}?${filter}`,
-        { method: "DELETE", headers: serviceHeaders },
+        { method: "DELETE", headers: databaseHeaders },
       );
 
       if (!response.ok) {
@@ -91,7 +94,7 @@ export async function POST(request: Request) {
         `${supabaseUrl}/rest/v1/${table}?${filter}`,
         {
           method: "PATCH",
-          headers: { ...serviceHeaders, Prefer: "return=minimal" },
+          headers: { ...databaseHeaders, Prefer: "return=minimal" },
           body: JSON.stringify(body),
         },
       );
@@ -110,10 +113,10 @@ export async function POST(request: Request) {
     await updateRows("matches", `mvp_player_id=eq.${encodeURIComponent(canonicalPlayerId)}`, { mvp_player_id: null });
     await deleteRows("players", `id=eq.${encodeURIComponent(canonicalPlayerId)}`);
 
-    if (player.auth_user_id) {
+    if (player.auth_user_id && serviceRoleKey) {
       const authDelete = await fetch(
         `${supabaseUrl}/auth/v1/admin/users/${encodeURIComponent(player.auth_user_id)}`,
-        { method: "DELETE", headers: serviceHeaders },
+        { method: "DELETE", headers: databaseHeaders },
       );
       if (!authDelete.ok && authDelete.status !== 404) {
         const detail = await authDelete.text();
@@ -123,6 +126,12 @@ export async function POST(request: Request) {
           { status: 500 },
         );
       }
+    } else if (player.auth_user_id) {
+      console.error("[Delete Player] Player row was removed, but SUPABASE_SERVICE_ROLE_KEY is unavailable for Auth cleanup.");
+      return new Response(
+        JSON.stringify({ error: "Player records were removed, but the login could not be deleted because the server Auth key is not configured." }),
+        { status: 500 },
+      );
     }
 
     return new Response(JSON.stringify({ success: true, deletedPlayerId: canonicalPlayerId }), { status: 200 });
