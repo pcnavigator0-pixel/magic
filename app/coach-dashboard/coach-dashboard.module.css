@@ -475,6 +475,67 @@
   opacity: 0.72;
 }
 
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(10, 15, 20, 0.58);
+  backdrop-filter: blur(3px);
+}
+
+.promptModal {
+  width: min(100%, 420px);
+  border: 1px solid #e2e8ed;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 28px;
+  box-shadow: 0 24px 70px rgba(10, 15, 20, 0.24);
+  text-align: center;
+}
+
+.promptIcon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: #fff0ea;
+  color: #e64a19;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.promptModal h2 {
+  margin-bottom: 8px;
+  color: #111111;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.promptModal p {
+  margin: 0 auto;
+  color: #596775;
+  font-size: 14px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.promptActions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.promptActions button {
+  min-width: 100px;
+}
+
 .loadingSpinner {
   display: inline-block;
   width: 12px;
@@ -755,6 +816,18 @@
 }
 
 @media (max-width: 620px) {
+  .promptModal {
+    padding: 22px 18px;
+  }
+
+  .promptActions {
+    flex-direction: column-reverse;
+  }
+
+  .promptActions button {
+    width: 100%;
+  }
+
   .mobileHeader {
     padding: 16px;
   }

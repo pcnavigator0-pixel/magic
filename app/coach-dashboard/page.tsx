@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { EventCountdown } from "@/app/components/event-countdown";
 import {
   createSlug,
@@ -51,6 +51,13 @@ const panels = [
 
 type PanelId = (typeof panels)[number]["id"];
 type CollectionKey = "events" | "matches" | "players" | "news" | "products";
+type DashboardModal = {
+  kind: "notice" | "confirm";
+  title: string;
+  message: string;
+  confirmLabel?: string;
+};
+
 const uploadBucket = "magic-uploads";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -70,6 +77,8 @@ export default function CoachDashboardPage() {
   const [showNotificationForm, setShowNotificationForm] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [dashboardModal, setDashboardModal] = useState<DashboardModal | null>(null);
+  const modalResolver = useRef<((confirmed: boolean) => void) | null>(null);
   const [notificationForm, setNotificationForm] = useState<{
     recipientMode: "all" | "selected";
     selectedPlayers: string[];
@@ -178,6 +187,24 @@ export default function CoachDashboardPage() {
     }
   }
 
+  function openNotice(title: string, message: string) {
+    setDashboardModal({ kind: "notice", title, message });
+  }
+
+  function closeDashboardModal(confirmed = true) {
+    const resolve = modalResolver.current;
+    modalResolver.current = null;
+    setDashboardModal(null);
+    resolve?.(confirmed);
+  }
+
+  function askForConfirmation(title: string, message: string, confirmLabel = "Continue") {
+    return new Promise<boolean>((resolve) => {
+      modalResolver.current = resolve;
+      setDashboardModal({ kind: "confirm", title, message, confirmLabel });
+    });
+  }
+
   async function runDashboardAction(action: () => Promise<void>, successMessage: string) {
     if (isSaving) return;
 
@@ -186,11 +213,15 @@ export default function CoachDashboardPage() {
 
     try {
       await action();
-      window.alert(successMessage);
+      openNotice("Action complete", successMessage);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to save this item.";
+      const rawMessage = error instanceof Error ? error.message : "Unable to complete this action.";
+      const message = rawMessage
+        .replace(/Supabase/gi, "Magic dataset")
+        .replace(/database policy/gi, "dataset permissions")
+        .replace(/database/gi, "dataset");
       setFormError(message);
-      window.alert(message);
+      openNotice("Action could not be completed", message);
     } finally {
       setIsSaving(false);
     }
@@ -220,7 +251,7 @@ export default function CoachDashboardPage() {
       setEditingEvent(null);
       setShowEventForm(false);
       form.reset();
-    }, editingEvent ? "Event updated in Supabase." : "Event saved to Supabase and published.");
+    }, editingEvent ? "Event updated in the Magic dataset." : "Event saved to the Magic dataset and published.");
   }
 
   async function handlePlayerCreate(event: FormEvent<HTMLFormElement>) {
@@ -255,7 +286,7 @@ export default function CoachDashboardPage() {
       setEditingPlayer(null);
       setShowPlayerForm(false);
       form.reset();
-    }, editingPlayer ? "Player profile updated in Supabase." : "Player saved to Supabase and added to the roster.");
+    }, editingPlayer ? "Player profile updated in the Magic dataset." : "Player saved to the Magic dataset and added to the roster.");
   }
 
   async function handleNewsCreate(event: FormEvent<HTMLFormElement>) {
@@ -288,7 +319,7 @@ export default function CoachDashboardPage() {
       setEditingNews(null);
       setShowNewsForm(false);
       form.reset();
-    }, editingNews ? "News post updated in Supabase." : "News post saved to Supabase and published.");
+    }, editingNews ? "News post updated in the Magic dataset." : "News post saved to the Magic dataset and published.");
   }
 
   async function handleProductCreate(event: FormEvent<HTMLFormElement>) {
@@ -338,7 +369,7 @@ export default function CoachDashboardPage() {
       }
       setShowProductForm(false);
       form.reset();
-    }, editingProduct ? "Product updated in Supabase." : "Product saved to Supabase and published in the shop.");
+    }, editingProduct ? "Product updated in the Magic dataset." : "Product saved to the Magic dataset and published in the shop.");
   }
 
   async function handleProfileUpdate(event: FormEvent<HTMLFormElement>) {
@@ -367,7 +398,7 @@ export default function CoachDashboardPage() {
         await insertCoachProfile(payload, session.access_token);
       }
       await refreshDashboard();
-    }, "Profile settings saved to Supabase.");
+    }, "Profile settings saved to the Magic dataset.");
   }
 
   async function handleNotificationCreate(event: FormEvent<HTMLFormElement>) {
@@ -406,7 +437,12 @@ export default function CoachDashboardPage() {
   }
 
   async function handleDelete(label: string, collection: CollectionKey, id: string, action: () => Promise<unknown>) {
-    if (!window.confirm(`Delete this ${label}? This cannot be undone.`)) return;
+    const confirmed = await askForConfirmation(
+      `Delete ${label}?`,
+      `This will permanently remove the ${label} from the Magic dataset. This action cannot be undone.`,
+      "Delete",
+    );
+    if (!confirmed) return;
 
     await runDashboardAction(async () => {
       await action();
@@ -420,7 +456,7 @@ export default function CoachDashboardPage() {
       } catch {
         // The local table is already updated; a later dashboard refresh can retry the network read.
       }
-    }, `${label.charAt(0).toUpperCase()}${label.slice(1)} deleted from Supabase.`);
+    }, `${label.charAt(0).toUpperCase()}${label.slice(1)} deleted from the Magic dataset.`);
   }
 
   function handleLogout() {
@@ -693,7 +729,7 @@ export default function CoachDashboardPage() {
                   type="button"
                   onClick={() => {
                     navigator.clipboard.writeText(newPlayerCode.code);
-                    alert(`Copied: ${newPlayerCode.code}`);
+                            openNotice("Registration code copied", newPlayerCode.code);
                   }}
                   style={{
                     background: "#e64a19",
@@ -764,7 +800,7 @@ export default function CoachDashboardPage() {
                       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                         <code style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f0f0f0", padding: "4px 8px", borderRadius: "4px", cursor: "pointer" }} title="Click to copy" onClick={() => {
                           navigator.clipboard.writeText(player.registration_code);
-                          alert(`Copied: ${player.registration_code}`);
+                          openNotice("Registration code copied", player.registration_code);
                         }}>
                           {player.registration_code}
                         </code>
@@ -773,7 +809,7 @@ export default function CoachDashboardPage() {
                           title="Copy to clipboard"
                           onClick={() => {
                             navigator.clipboard.writeText(player.registration_code);
-                            alert(`Copied: ${player.registration_code}`);
+                            openNotice("Registration code copied", player.registration_code);
                           }}
                           style={{ background: "none", border: "none", cursor: "pointer", color: "#e64a19", fontSize: "14px", padding: "4px" }}
                         >
@@ -1112,6 +1148,26 @@ export default function CoachDashboardPage() {
           </form>
         </section>
       </section>
+
+      {dashboardModal && (
+        <div className={styles.modalBackdrop} role="presentation" onMouseDown={(event) => {
+          if (event.target === event.currentTarget) closeDashboardModal(false);
+        }}>
+          <section className={styles.promptModal} role="dialog" aria-modal="true" aria-labelledby="dashboard-modal-title">
+            <div className={styles.promptIcon}>{dashboardModal.kind === "confirm" ? "!" : "✓"}</div>
+            <h2 id="dashboard-modal-title">{dashboardModal.title}</h2>
+            <p>{dashboardModal.message}</p>
+            <div className={styles.promptActions}>
+              {dashboardModal.kind === "confirm" && (
+                <button type="button" className={styles.secondaryButton} onClick={() => closeDashboardModal(false)}>Cancel</button>
+              )}
+              <button type="button" className={`${dashboardModal.kind === "confirm" ? styles.dangerButton : styles.primaryButton}`} onClick={() => closeDashboardModal(true)}>
+                {dashboardModal.kind === "confirm" ? dashboardModal.confirmLabel : "Okay"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </main>
   );
 }
@@ -1211,7 +1267,7 @@ async function uploadPhotoFile(fileValue: FormDataEntryValue | null, folder: str
 
   if (!response.ok) {
     const body = await response.json().catch(() => null) as { message?: string; error?: string } | null;
-    throw new Error(body?.message || body?.error || `Supabase upload failed: ${response.status}`);
+    throw new Error(body?.message || body?.error || `Image upload failed: ${response.status}`);
   }
 
   return `${supabaseUrl}/storage/v1/object/public/${uploadBucket}/${objectPath}`;

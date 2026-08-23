@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { FormEvent, ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   deleteMatch,
   getMagicData,
@@ -32,6 +32,8 @@ export default function NewMatchPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [showCancelPrompt, setShowCancelPrompt] = useState(false);
+  const cancelPromptResolver = useRef<((confirmed: boolean) => void) | null>(null);
   const [quarter, setQuarter] = useState(1);
   const [minutes, setMinutes] = useState(10);
   const [seconds, setSeconds] = useState(0);
@@ -161,7 +163,7 @@ export default function NewMatchPage() {
         : await insertMatch(payload, currentSession.access_token);
       const savedMatch = result[0];
 
-      if (!savedMatch) throw new Error("Supabase did not return the saved match.");
+      if (!savedMatch) throw new Error("The Magic dataset did not return the saved match.");
 
       setActiveMatch(savedMatch);
       setMessage(mode === "live" ? "Live match is ready for scoreboard control." : "Match saved successfully.");
@@ -225,10 +227,24 @@ export default function NewMatchPage() {
     }
   }
 
+  function askCancelConfirmation() {
+    return new Promise<boolean>((resolve) => {
+      cancelPromptResolver.current = resolve;
+      setShowCancelPrompt(true);
+    });
+  }
+
+  function closeCancelPrompt(confirmed: boolean) {
+    const resolve = cancelPromptResolver.current;
+    cancelPromptResolver.current = null;
+    setShowCancelPrompt(false);
+    resolve?.(confirmed);
+  }
+
   async function cancelLiveMatch() {
     if (!liveMatch) return;
 
-    const confirmed = window.confirm("Cancel this live match and delete its scoreboard data?");
+    const confirmed = await askCancelConfirmation();
     if (!confirmed) return;
 
     setError("");
@@ -524,6 +540,22 @@ export default function NewMatchPage() {
           </section>
         </div>
       </div>
+
+      {showCancelPrompt && (
+        <div className={styles.modalBackdrop} role="presentation" onMouseDown={(event) => {
+          if (event.target === event.currentTarget) closeCancelPrompt(false);
+        }}>
+          <section className={styles.promptModal} role="dialog" aria-modal="true" aria-labelledby="cancel-match-title">
+            <div className={styles.promptIcon}>!</div>
+            <h2 id="cancel-match-title">Cancel live match?</h2>
+            <p>This will remove the live match and its scoreboard data from the Magic dataset. This action cannot be undone.</p>
+            <div className={styles.promptActions}>
+              <button type="button" className={styles.secondaryButton} onClick={() => closeCancelPrompt(false)}>Keep Match</button>
+              <button type="button" className={styles.dangerButton} onClick={() => closeCancelPrompt(true)}>Cancel Match</button>
+            </div>
+          </section>
+        </div>
+      )}
     </main>
   );
 }
