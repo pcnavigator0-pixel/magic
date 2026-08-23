@@ -5057,7 +5057,7 @@ body.modal-open {
 
 /* Compact horizontal shop cards for phones */
 @media (max-width: 639px) {
-  .shop-grid {
+  .public-grid.three-columns.shop-grid {
     display: grid;
     width: calc(100% - 24px);
     max-width: none;
