@@ -16,6 +16,7 @@ export function MatchesBoard({ matches: initialMatches, players }: { matches: Ma
   const [season, setSeason] = useState("all");
   const [venue, setVenue] = useState("all");
   const [sortMode, setSortMode] = useState<SortMode>("newest");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -113,7 +114,19 @@ export function MatchesBoard({ matches: initialMatches, players }: { matches: Ma
         <LiveWidget match={featuredLiveMatch} now={now} />
       </section>
 
-      <section className="matches-filter-bar" aria-label="Match filters">
+      <button
+        type="button"
+        className={`matches-filter-fab${filtersOpen ? " is-open" : ""}`}
+        aria-expanded={filtersOpen}
+        aria-controls="matches-filter-bar"
+        onClick={() => setFiltersOpen((open) => !open)}
+      >
+        <i className={`fa-solid ${filtersOpen ? "fa-xmark" : "fa-filter"}`} />
+        <span>{filtersOpen ? "Close" : "Filters"}</span>
+        {activeFilters > 0 ? <b>{activeFilters}</b> : null}
+      </button>
+
+      <section id="matches-filter-bar" className={`matches-filter-bar${filtersOpen ? " is-open" : ""}`} aria-label="Match filters">
         <label className="matches-search">
           <i className="fa-solid fa-magnifying-glass" />
           <input

@@ -3861,6 +3861,10 @@ body.modal-open {
   font-weight: 800;
 }
 
+.matches-filter-fab {
+  display: none;
+}
+
 .matches-filter-bar {
   position: relative;
   z-index: 5;
@@ -4208,6 +4212,35 @@ body.modal-open {
   text-align: center;
 }
 
+.finished-card .match-score strong {
+  font-size: clamp(18px, 1.8vw, 24px);
+  letter-spacing: -0.07em;
+  white-space: nowrap;
+}
+
+.finished-card .match-score {
+  min-width: 0;
+}
+
+.finished-card .teams-row {
+  gap: 4px;
+}
+
+.finished-card .team-mark {
+  gap: 5px;
+}
+
+.finished-card .team-mark strong {
+  max-width: 74px;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.finished-card .match-mvp span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .match-vs {
   color: #111827;
   font-size: 13px;
@@ -4391,7 +4424,54 @@ body.modal-open {
   }
 
   .matches-filter-bar {
+    display: none;
     grid-template-columns: 1fr;
+  }
+
+  .matches-filter-bar.is-open {
+    display: grid;
+  }
+
+  .matches-filter-fab {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 100;
+    display: inline-flex;
+    min-height: 46px;
+    align-items: center;
+    gap: 8px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--primary-orange);
+    color: #ffffff;
+    padding: 0 15px;
+    box-shadow: 0 12px 28px rgba(230, 74, 25, 0.3);
+    font-size: 12px;
+    font-weight: 900;
+    cursor: pointer;
+  }
+
+  .matches-filter-fab.is-open {
+    background: #111827;
+  }
+
+  .matches-filter-fab b {
+    display: grid;
+    width: 18px;
+    height: 18px;
+    place-items: center;
+    border-radius: 50%;
+    background: #ffffff;
+    color: var(--primary-orange);
+    font-size: 10px;
+  }
+
+  .matches-filter-bar.is-open {
+    margin-top: -28px;
+    margin-bottom: 28px;
+    padding: 14px;
+    border-radius: 12px;
   }
 
   .matches-grid-item {
@@ -4420,6 +4500,19 @@ body.modal-open {
     padding: 12px;
   }
 
+  .finished-card .match-score strong {
+    font-size: 20px;
+  }
+
+  .finished-card .team-mark strong {
+    max-width: 64px;
+    font-size: 10px;
+  }
+
+  .finished-card .match-meta {
+    font-size: 10px;
+  }
+
   .match-actions {
     margin: 3px -12px -12px;
     padding-inline: 9px;
@@ -4433,6 +4526,10 @@ body.modal-open {
   .matches-scroll-controls button {
     width: 38px;
     height: 38px;
+  }
+
+  .matches-filter-bar.is-open .matches-filter-button {
+    min-height: 44px;
   }
 
   .matches-tabs {
