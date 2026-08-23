@@ -4698,14 +4698,24 @@ body.modal-open {
     grid-template-columns: 1fr;
   }
 
+  .live-card .teams-row,
+  .upcoming-card .teams-row,
   .finished-card .teams-row {
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     gap: 3px;
   }
 
+  .live-card .match-score,
+  .upcoming-card .match-score,
   .finished-card .match-score {
     order: initial;
     min-width: 0;
+  }
+
+  .live-card .match-score strong,
+  .upcoming-card .match-vs {
+    font-size: 15px;
+    letter-spacing: -0.06em;
   }
 
   .finished-card .match-score strong {
@@ -4713,16 +4723,24 @@ body.modal-open {
     letter-spacing: -0.09em;
   }
 
+  .live-card .team-mark span,
+  .upcoming-card .team-mark span,
   .finished-card .team-mark span {
     width: 28px;
     height: 28px;
     font-size: 8px;
   }
 
+  .live-card .team-mark strong,
+  .upcoming-card .team-mark strong,
   .finished-card .team-mark strong {
     max-width: 52px;
     font-size: 8px;
     line-height: 1.05;
+  }
+
+  .match-vs {
+    font-size: 10px;
   }
 
   .match-actions {
