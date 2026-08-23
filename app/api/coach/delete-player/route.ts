@@ -1,21 +1,7 @@
 /**
- * Fully deletes a player: their portal_profiles row, their players row,
- * AND their Supabase Auth login (auth.users). The Auth Admin API is the
- * only way to remove an auth.users row, and it requires the SERVICE
- * ROLE key — which must never be sent to the browser. That's why this
- * has to be a server route rather than a direct client call.
- *
- * SECURITY: every request is re-verified server-side against the
- * is_coach() Postgres function using the CALLER's own access token,
- * before any service-role action runs. Without this check, the service
- * role key would let ANY authenticated user (including a player) delete
- * anyone's account — so do not remove or weaken this check.
- *
- * Order of deletion matters and must stay in this order to avoid
- * foreign-key violations regardless of how cascades are configured:
- *   1. portal_profiles row  (references both players.id and auth.users.id)
- *   2. players row
- *   3. auth.users row (via the Auth Admin API)
+ * Fully deletes a player and any records that depend on the player row.
+ * The Auth Admin API requires the service-role key, so this cleanup stays
+ * server-side and is protected by a caller-side coach check.
  */
 export async function POST(request: Request) {
   try {
@@ -25,11 +11,11 @@ export async function POST(request: Request) {
     }
 
     const { playerId } = await request.json();
-    if (!playerId) {
+    if (!playerId || typeof playerId !== "string") {
       return new Response(JSON.stringify({ error: "Missing playerId." }), { status: 400 });
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -38,8 +24,7 @@ export async function POST(request: Request) {
       return new Response(JSON.stringify({ error: "Server configuration error" }), { status: 500 });
     }
 
-    // 1. Verify the caller is actually a coach, using THEIR OWN token —
-    //    never trust the client, and never run the steps below without this.
+    // Verify the caller with their own access token before using the service role.
     const coachCheck = await fetch(`${supabaseUrl}/rest/v1/rpc/is_coach`, {
       method: "POST",
       headers: {
@@ -61,59 +46,88 @@ export async function POST(request: Request) {
       "Content-Type": "application/json",
     };
 
-    // 2. Look up the player so we know if they have a linked auth account.
-    const playerRes = await fetch(
-      `${supabaseUrl}/rest/v1/players?id=eq.${encodeURIComponent(playerId)}&select=id,auth_user_id`,
-      { headers: serviceHeaders }
-    );
-    const players = await playerRes.json();
-    const player = players?.[0];
+    // The UI normally sends players.id. Keep a registration-code fallback so
+    // older/stale dashboard rows can still be removed safely.
+    const lookupPlayer = async (filter: string) => {
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/players?${filter}&select=id,auth_user_id,registration_code&limit=1`,
+        { headers: serviceHeaders, cache: "no-store" },
+      );
+      const body = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        console.error("[Delete Player] Player lookup failed:", response.status, body);
+        throw new Error("Could not verify the player record in Supabase.");
+      }
+
+      return Array.isArray(body) ? body[0] : null;
+    };
+
+    let player = await lookupPlayer(`id=eq.${encodeURIComponent(playerId)}`);
+    if (!player) {
+      player = await lookupPlayer(`registration_code=eq.${encodeURIComponent(playerId)}`);
+    }
 
     if (!player) {
-      return new Response(JSON.stringify({ error: "Player not found." }), { status: 404 });
+      return new Response(JSON.stringify({ error: "Player not found in the players table." }), { status: 404 });
     }
 
-    // 3. Delete the portal_profiles row first (clears both FK references).
-    const profileDelete = await fetch(
-      `${supabaseUrl}/rest/v1/portal_profiles?player_id=eq.${encodeURIComponent(playerId)}`,
-      { method: "DELETE", headers: serviceHeaders }
-    );
-    if (!profileDelete.ok) {
-      const detail = await profileDelete.text();
-      console.error("[Delete Player] Failed to delete portal_profiles:", detail);
-      return new Response(JSON.stringify({ error: "Failed to remove the player's portal profile." }), { status: 500 });
-    }
+    const canonicalPlayerId = player.id;
+    const deleteRows = async (table: string, filter: string) => {
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/${table}?${filter}`,
+        { method: "DELETE", headers: serviceHeaders },
+      );
 
-    // 4. Delete the players row.
-    const playerDelete = await fetch(
-      `${supabaseUrl}/rest/v1/players?id=eq.${encodeURIComponent(playerId)}`,
-      { method: "DELETE", headers: serviceHeaders }
-    );
-    if (!playerDelete.ok) {
-      const detail = await playerDelete.text();
-      console.error("[Delete Player] Failed to delete player:", detail);
-      return new Response(JSON.stringify({ error: "Failed to remove the player record." }), { status: 500 });
-    }
+      if (!response.ok) {
+        const detail = await response.text();
+        console.error(`[Delete Player] Failed to delete from ${table}:`, detail);
+        throw new Error(`Failed to clean up ${table}.`);
+      }
+    };
 
-    // 5. Delete the Auth login itself, if one exists.
+    const updateRows = async (table: string, filter: string, body: Record<string, unknown>) => {
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/${table}?${filter}`,
+        {
+          method: "PATCH",
+          headers: { ...serviceHeaders, Prefer: "return=minimal" },
+          body: JSON.stringify(body),
+        },
+      );
+
+      if (!response.ok) {
+        const detail = await response.text();
+        console.error(`[Delete Player] Failed to update ${table}:`, detail);
+        throw new Error(`Failed to clean up ${table}.`);
+      }
+    };
+
+    // A missing row in any of these tables is harmless: PostgREST returns a
+    // successful no-op for a DELETE/PATCH filter with no matching rows.
+    await deleteRows("portal_profiles", `player_id=eq.${encodeURIComponent(canonicalPlayerId)}`);
+    await deleteRows("notifications", `recipient_player_id=eq.${encodeURIComponent(canonicalPlayerId)}`);
+    await updateRows("matches", `mvp_player_id=eq.${encodeURIComponent(canonicalPlayerId)}`, { mvp_player_id: null });
+    await deleteRows("players", `id=eq.${encodeURIComponent(canonicalPlayerId)}`);
+
     if (player.auth_user_id) {
       const authDelete = await fetch(
-        `${supabaseUrl}/auth/v1/admin/users/${player.auth_user_id}`,
-        { method: "DELETE", headers: serviceHeaders }
+        `${supabaseUrl}/auth/v1/admin/users/${encodeURIComponent(player.auth_user_id)}`,
+        { method: "DELETE", headers: serviceHeaders },
       );
       if (!authDelete.ok && authDelete.status !== 404) {
         const detail = await authDelete.text();
         console.error("[Delete Player] Failed to delete auth user:", detail);
         return new Response(
-          JSON.stringify({ error: "Player and profile were removed, but their login could not be deleted. Contact support." }),
-          { status: 500 }
+          JSON.stringify({ error: "Player records were removed, but the login could not be deleted. Contact support." }),
+          { status: 500 },
         );
       }
     }
 
-    return new Response(JSON.stringify({ success: true }), { status: 200 });
+    return new Response(JSON.stringify({ success: true, deletedPlayerId: canonicalPlayerId }), { status: 200 });
   } catch (error) {
     console.error("[Delete Player] Unexpected error:", error);
-    return new Response(JSON.stringify({ error: "An unexpected error occurred." }), { status: 500 });
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "An unexpected error occurred." }), { status: 500 });
   }
 }
