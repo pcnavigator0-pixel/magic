@@ -44,9 +44,15 @@ export function ShopProductActions({
         <i className="fa-solid fa-cart-plus" aria-hidden="true" />
         <span>{disabled ? "Out of stock" : wasAdded ? "Added" : "Cart"}</span>
       </button>
-      <a className="shop-icon-action shop-whatsapp-action" href={whatsappHref} target="_blank" rel="noreferrer">
+      <a
+        className="shop-icon-action shop-whatsapp-action"
+        href={whatsappHref}
+        target="_blank"
+        rel="noreferrer"
+        aria-label={`Order ${name} on WhatsApp`}
+        title="Order on WhatsApp"
+      >
         <i className="fa-brands fa-whatsapp" aria-hidden="true" />
-        <span>WhatsApp</span>
       </a>
     </div>
   );
