@@ -69,6 +69,7 @@ export default function CoachDashboardPage() {
   const [showProductForm, setShowProductForm] = useState(false);
   const [showNotificationForm, setShowNotificationForm] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [notificationForm, setNotificationForm] = useState<{
     recipientMode: "all" | "selected";
     selectedPlayers: string[];
@@ -423,6 +424,8 @@ export default function CoachDashboardPage() {
   }
 
   function handleLogout() {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
     void signOutFromPortal();
     window.location.href = "/login";
   }
@@ -489,7 +492,9 @@ export default function CoachDashboardPage() {
 
         <div className={styles.sidebarFooter}>
           <p>Access level: {coachRole}</p>
-          <button type="button" className={styles.logoutButton} onClick={handleLogout}>Sign Out</button>
+          <button type="button" className={styles.logoutButton} onClick={handleLogout} disabled={isLoggingOut} aria-busy={isLoggingOut}>
+            {isLoggingOut ? <><LoadingDots /> Signing out...</> : "Sign Out"}
+          </button>
           <p className={styles.systemVersion}>System Version 2026.1</p>
         </div>
       </aside>
@@ -586,7 +591,7 @@ export default function CoachDashboardPage() {
             </div>
             <div className={styles.actionBar}>
               <button type="button" className={styles.secondaryButton} onClick={() => { setShowEventForm(false); setEditingEvent(null); }}>Cancel</button>
-              <button type="submit" className={styles.primaryButton} disabled={isSaving}>{editingEvent ? "Update Event" : "Publish Event"}</button>
+              <button type="submit" className={styles.primaryButton} disabled={isSaving}>{isSaving ? <><LoadingDots /> Saving...</> : (editingEvent ? "Update Event" : "Publish Event")}</button>
             </div>
           </form>
           )}
@@ -730,7 +735,7 @@ export default function CoachDashboardPage() {
             </div>
             <div className={styles.actionBar}>
               <button type="button" className={styles.secondaryButton} onClick={() => { setShowPlayerForm(false); setEditingPlayer(null); }}>Cancel</button>
-              <button type="submit" className={styles.primaryButton} disabled={isSaving}>{editingPlayer ? "Update Player" : "Register Player Profile"}</button>
+              <button type="submit" className={styles.primaryButton} disabled={isSaving}>{isSaving ? <><LoadingDots /> Saving...</> : (editingPlayer ? "Update Player" : "Register Player Profile")}</button>
             </div>
           </form>
           )}
@@ -876,7 +881,7 @@ export default function CoachDashboardPage() {
             </div>
             <div className={styles.actionBar}>
               <button type="button" className={styles.secondaryButton} onClick={() => { setShowProductForm(false); setEditingProduct(null); }}>Cancel</button>
-              <button type="submit" className={styles.primaryButton} disabled={isSaving}>{editingProduct ? "Update Product" : "Publish Product"}</button>
+              <button type="submit" className={styles.primaryButton} disabled={isSaving}>{isSaving ? <><LoadingDots /> Saving...</> : (editingProduct ? "Update Product" : "Publish Product")}</button>
             </div>
           </form>
           )}
@@ -1005,7 +1010,7 @@ export default function CoachDashboardPage() {
             </div>
             <div className={styles.actionBar}>
               <button type="button" className={styles.secondaryButton} onClick={() => { setShowNotificationForm(false); }}>Cancel</button>
-              <button type="submit" className={styles.primaryButton} disabled={isSaving}>Send Notification</button>
+              <button type="submit" className={styles.primaryButton} disabled={isSaving}>{isSaving ? <><LoadingDots /> Sending...</> : "Send Notification"}</button>
             </div>
           </form>
           )}
@@ -1103,7 +1108,7 @@ export default function CoachDashboardPage() {
                 <textarea name="bio" rows={4} defaultValue={dashboardData.coachProfile?.bio || ""} />
               </InputBox>
             </div>
-            <div className={styles.actionBar}><button type="submit" className={styles.primaryButton} disabled={isSaving}>Save Profile Settings</button></div>
+            <div className={styles.actionBar}><button type="submit" className={styles.primaryButton} disabled={isSaving}>{isSaving ? <><LoadingDots /> Saving...</> : "Save Profile Settings"}</button></div>
           </form>
         </section>
       </section>
@@ -1260,11 +1265,17 @@ function PanelHeader({
   onButtonClick?: () => void;
   buttonHref?: string;
 }) {
+  const [isOpening, setIsOpening] = useState(false);
+
+  function showLoading() {
+    setIsOpening(true);
+  }
+
   return (
     <div className={styles.panelHeader}>
       {buttonHref ? (
-        <Link href={buttonHref} className={styles.primaryButton}>
-          {buttonLabel}
+        <Link href={buttonHref} className={styles.primaryButton} onClick={showLoading} aria-busy={isOpening}>
+          {isOpening ? <><LoadingDots /> Opening...</> : buttonLabel}
         </Link>
       ) : (
         <button type="button" className={styles.primaryButton} onClick={onButtonClick}>
@@ -1280,13 +1291,25 @@ function RowActions({
   onEdit,
   onDelete,
 }: {
-  onEdit: () => void;
-  onDelete: () => void;
+  onEdit: () => void | Promise<void>;
+  onDelete: () => void | Promise<void>;
 }) {
+  const [busyAction, setBusyAction] = useState<"edit" | "delete" | null>(null);
+
+  function runAction(action: "edit" | "delete", callback: () => void | Promise<void>) {
+    if (busyAction) return;
+    setBusyAction(action);
+    Promise.resolve().then(callback).finally(() => setBusyAction(null));
+  }
+
   return (
     <div className={styles.rowActions}>
-      <button type="button" className={styles.tableButton} onClick={onEdit}>Edit</button>
-      <button type="button" className={styles.dangerButton} onClick={onDelete}>Delete</button>
+      <button type="button" className={styles.tableButton} onClick={() => runAction("edit", onEdit)} disabled={busyAction !== null} aria-busy={busyAction === "edit"}>
+        {busyAction === "edit" ? <><LoadingDots /> Opening...</> : "Edit"}
+      </button>
+      <button type="button" className={styles.dangerButton} onClick={() => runAction("delete", onDelete)} disabled={busyAction !== null} aria-busy={busyAction === "delete"}>
+        {busyAction === "delete" ? <><LoadingDots /> Deleting...</> : "Delete"}
+      </button>
     </div>
   );
 }
@@ -1337,6 +1360,10 @@ function EditableMatchesTable({
       </table>
     </div>
   );
+}
+
+function LoadingDots() {
+  return <span className={styles.loadingSpinner} role="status" aria-label="Loading" />;
 }
 
 function InputBox({

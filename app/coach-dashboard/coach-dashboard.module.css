@@ -467,6 +467,31 @@
   background-color: #d84315;
 }
 
+.primaryButton:disabled,
+.secondaryButton:disabled,
+.tableButton:disabled,
+.dangerButton:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.loadingSpinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  flex: 0 0 12px;
+  margin-right: 7px;
+  border: 2px dotted currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  vertical-align: -2px;
+  animation: dashboardSpinner 0.75s linear infinite;
+}
+
+@keyframes dashboardSpinner {
+  to { transform: rotate(360deg); }
+}
+
 .secondaryButton,
 .tableButton,
 .dangerButton {
