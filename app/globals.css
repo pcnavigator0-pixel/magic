@@ -5058,12 +5058,17 @@ body.modal-open {
 /* Compact horizontal shop cards for phones */
 @media (max-width: 639px) {
   .shop-grid {
-    grid-template-columns: 1fr;
+    display: grid;
+    width: calc(100% - 24px);
+    max-width: none;
+    grid-template-columns: minmax(0, 1fr);
     gap: 10px;
   }
 
   .shop-card {
     display: grid;
+    width: 100%;
+    min-width: 0;
     grid-template-columns: minmax(76px, 34%) minmax(0, 1fr);
     grid-template-rows: auto auto minmax(0, 1fr) auto auto;
     column-gap: 12px;
