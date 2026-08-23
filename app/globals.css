@@ -4055,7 +4055,7 @@ body.modal-open {
 
 .matches-grid {
   display: flex;
-  gap: 18px;
+  gap: 14px;
   overflow-x: auto;
   overflow-y: visible;
   padding: 2px 2px 16px;
@@ -4080,7 +4080,7 @@ body.modal-open {
 }
 
 .matches-grid-item {
-  flex: 0 0 clamp(260px, 28vw, 320px);
+  flex: 0 0 clamp(230px, 18vw, 270px);
   scroll-snap-align: start;
 }
 
@@ -4088,11 +4088,11 @@ body.modal-open {
   position: relative;
   min-height: 100%;
   display: grid;
-  gap: 12px;
+  gap: 9px;
   border: 1px solid #e2e8ed;
   border-radius: 8px;
   background: #ffffff;
-  padding: 18px;
+  padding: 14px;
   color: #111827;
   box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
   transition: border-color 0.22s ease, box-shadow 0.22s ease, transform 0.22s ease;
@@ -4115,13 +4115,13 @@ body.modal-open {
 .match-tag {
   display: inline-flex;
   width: fit-content;
-  min-height: 28px;
+  min-height: 24px;
   align-items: center;
   gap: 7px;
   border-radius: 6px;
-  padding: 0 10px;
+  padding: 0 8px;
   color: #ffffff;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 900;
   line-height: 1;
   text-transform: uppercase;
@@ -4141,7 +4141,7 @@ body.modal-open {
 
 .match-context {
   color: #475569;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
   text-align: center;
 }
@@ -4149,27 +4149,27 @@ body.modal-open {
 .teams-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  gap: 12px;
+  gap: 8px;
   align-items: center;
 }
 
 .team-mark {
   display: grid;
   justify-items: center;
-  gap: 10px;
+  gap: 7px;
   min-width: 0;
   text-align: center;
 }
 
 .team-mark span {
   display: grid;
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
   place-items: center;
   border-radius: 50%;
   background: #111827;
   color: #ffffff;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 900;
 }
 
@@ -4195,22 +4195,22 @@ body.modal-open {
 }
 
 .team-mark strong {
-  max-width: 100px;
+  max-width: 82px;
   color: #0f172a;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 900;
-  line-height: 1.25;
+  line-height: 1.2;
   overflow-wrap: anywhere;
 }
 
 .match-score {
-  min-width: 72px;
+  min-width: 58px;
   text-align: center;
 }
 
 .match-vs {
   color: #111827;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 900;
 }
 
@@ -4218,33 +4218,33 @@ body.modal-open {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   color: #64748b;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 800;
   text-align: center;
 }
 
 .match-actions {
   display: flex;
-  min-height: 48px;
+  min-height: 42px;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  margin: 4px -18px -18px;
+  gap: 8px;
+  margin: 3px -14px -14px;
   border-top: 1px solid #e2e8ed;
-  padding: 12px 14px;
+  padding: 9px 10px;
 }
 
 .match-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   border: 0;
   background: transparent;
   color: #111827;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 900;
   cursor: pointer;
 }
@@ -4272,19 +4272,19 @@ body.modal-open {
 .match-mvp {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 7px;
   border-radius: 8px;
   background: #fff7df;
   color: #8a5c00;
-  padding: 12px 14px;
-  font-size: 13px;
+  padding: 9px 10px;
+  font-size: 11px;
   font-weight: 800;
 }
 
 .match-mvp-avatar {
   flex: 0 0 auto;
-  width: 42px;
-  height: 42px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   object-fit: cover;
   box-shadow: 0 0 0 2px #ffffff;
@@ -4375,7 +4375,7 @@ body.modal-open {
   }
 
   .matches-grid-item {
-    flex-basis: clamp(260px, 34vw, 310px);
+    flex-basis: clamp(230px, 28vw, 280px);
   }
 }
 
@@ -4395,7 +4395,7 @@ body.modal-open {
   }
 
   .matches-grid-item {
-    flex-basis: min(78vw, 310px);
+    flex-basis: min(72vw, 280px);
   }
 }
 
@@ -4409,24 +4409,25 @@ body.modal-open {
   }
 
   .matches-grid {
-    gap: 12px;
+    gap: 10px;
   }
 
   .matches-grid-item {
-    flex-basis: calc(100vw - 44px);
+    flex-basis: calc(100vw - 40px);
   }
 
   .match-card {
-    padding: 16px;
+    padding: 12px;
   }
 
   .match-actions {
-    margin: 4px -16px -16px;
+    margin: 3px -12px -12px;
+    padding-inline: 9px;
   }
 
   .team-mark span {
-    width: 40px;
-    height: 40px;
+    width: 34px;
+    height: 34px;
   }
 
   .matches-scroll-controls button {
