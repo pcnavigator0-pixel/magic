@@ -5058,6 +5058,7 @@ body.modal-open {
 /* Compact horizontal shop cards for phones */
 @media (max-width: 639px) {
   .shop-grid {
+    grid-template-columns: 1fr;
     gap: 10px;
   }
 
