@@ -126,25 +126,31 @@ export function EventList({ events }: EventListProps) {
       </section>
 
       <section className="public-list event-list">
-        {visibleEvents.map((event) => (
-          <article className="public-row" key={event.id}>
-            <div className="public-date">
-              <strong>
-                <EventCountdown eventDate={event.event_date} eventTime={event.event_time} compact />
-              </strong>
-              <span>countdown</span>
-            </div>
-            <div>
-              <span>{event.category}</span>
-              <h2>{event.title}</h2>
-              <p>
-                {formatDisplayDate(event.event_date)}
-                {event.event_time ? ` at ${event.event_time}` : ""} - {event.venue}
-              </p>
-              {event.description && <p>{event.description}</p>}
-            </div>
-          </article>
-        ))}
+        {visibleEvents.map((event) => {
+          const dateParts = getDateParts(event.event_date);
+
+          return (
+            <article className="public-row event-card" id={`event-${event.id}`} key={event.id}>
+              <div className="public-date event-date-tile">
+                <strong>{dateParts.day}</strong>
+                <span>{dateParts.month} {dateParts.year}</span>
+                <small><EventCountdown eventDate={event.event_date} eventTime={event.event_time} compact /></small>
+              </div>
+              <div className="event-card-content">
+                <span>{event.category}</span>
+                <h2>{event.title}</h2>
+                <p className="event-card-meta">
+                  <span><i className="fa-regular fa-calendar" aria-hidden="true" /> {formatDisplayDate(event.event_date)}{event.event_time ? ` · ${event.event_time}` : ""}</span>
+                  <span><i className="fa-solid fa-location-dot" aria-hidden="true" /> {event.venue}</span>
+                </p>
+                {event.description && <p className="event-card-description">{event.description}</p>}
+                <a className="event-card-link" href={`#event-${event.id}`}>
+                  View details <i className="fa-solid fa-arrow-right" aria-hidden="true" />
+                </a>
+              </div>
+            </article>
+          );
+        })}
       </section>
 
       {filteredEvents.length === 0 && <p className="public-empty">No events match those filters.</p>}
@@ -170,4 +176,13 @@ function formatDisplayDate(value: string) {
     day: "numeric",
     year: "numeric",
   }).format(new Date(value));
+}
+
+function getDateParts(value: string) {
+  const date = new Date(`${value}T00:00:00`);
+  return {
+    day: new Intl.DateTimeFormat("en", { day: "2-digit" }).format(date),
+    month: new Intl.DateTimeFormat("en", { month: "short" }).format(date).toUpperCase(),
+    year: new Intl.DateTimeFormat("en", { year: "numeric" }).format(date),
+  };
 }
