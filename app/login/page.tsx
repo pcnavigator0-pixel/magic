@@ -4,7 +4,7 @@ import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import {
   dashboardPath,
-  getStoredPortalSession,
+  getFreshPortalSession,
   signInToPortal,
 } from "@/lib/portal-auth";
 import styles from "./login.module.css";
@@ -19,8 +19,15 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    const session = getStoredPortalSession();
-    if (session) window.location.href = dashboardPath(session.profile.role);
+    let ignore = false;
+
+    getFreshPortalSession().then((session) => {
+      if (!ignore && session) window.location.href = dashboardPath(session.profile.role);
+    });
+
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {

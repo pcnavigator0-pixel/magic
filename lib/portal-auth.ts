@@ -56,6 +56,25 @@ function authHeaders(accessToken?: string) {
   };
 }
 
+async function getAuthenticatedUser(accessToken: string): Promise<{ id: string; email?: string }> {
+  const { supabaseUrl } = ensureSupabase();
+  const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
+    cache: "no-store",
+    headers: authHeaders(accessToken),
+  });
+
+  if (!response.ok) {
+    throw new Error("Supabase session is no longer valid.");
+  }
+
+  const user = (await response.json()) as { id?: string; email?: string };
+  if (!user.id) {
+    throw new Error("Supabase did not return an authenticated user.");
+  }
+
+  return { id: user.id, email: user.email };
+}
+
 async function authFetch(path: string, init: RequestInit) {
   const { supabaseUrl } = ensureSupabase();
   const response = await fetch(`${supabaseUrl}/auth/v1/${path}`, {
@@ -163,12 +182,28 @@ export async function getFreshPortalSession() {
   const session = getStoredPortalSession();
   if (!session) return null;
 
-  if (session.expires_at > Date.now() + 60_000) {
-    return session;
-  }
-
   try {
-    return await refreshPortalSession(session);
+    const authenticatedUser = await getAuthenticatedUser(session.access_token);
+    const profile = await getPortalProfile(authenticatedUser.id, session.access_token);
+
+    if (!profile) {
+      throw new Error("This portal profile is no longer available.");
+    }
+
+    if (session.expires_at > Date.now() + 60_000) {
+      const verifiedSession: PortalSession = {
+        ...session,
+        user: {
+          id: authenticatedUser.id,
+          email: authenticatedUser.email,
+        },
+        profile,
+      };
+      savePortalSession(verifiedSession);
+      return verifiedSession;
+    }
+
+    return await refreshPortalSession({ ...session, user: authenticatedUser, profile });
   } catch {
     clearPortalSession();
     return null;
@@ -294,6 +329,24 @@ export function getStoredPortalSession() {
   } catch {
     clearPortalSession();
     return null;
+  }
+}
+
+export async function signOutFromPortal() {
+  const session = getStoredPortalSession();
+  clearPortalSession();
+
+  try {
+    if (session) {
+      const { supabaseUrl } = ensureSupabase();
+      await fetch(`${supabaseUrl}/auth/v1/logout`, {
+        method: "POST",
+        cache: "no-store",
+        headers: authHeaders(session.access_token),
+      });
+    }
+  } catch {
+    // Local cleanup below is the source of truth for the portal UI.
   }
 }
 

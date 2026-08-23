@@ -12,7 +12,7 @@ import {
   type Notification,
   type Player,
 } from "@/lib/magic-data";
-import { clearPortalSession, getStoredPortalSession, type PortalSession } from "@/lib/portal-auth";
+import { getFreshPortalSession, signOutFromPortal, type PortalSession } from "@/lib/portal-auth";
 import styles from "./player-dashboard.module.css";
 
 function getNewsPreview(post: MagicData["news"][number]) {
@@ -31,36 +31,50 @@ export default function PlayerDashboardPage() {
   const [activeTab, setActiveTab] = useState<"overview" | "matches" | "news" | "data" | "notifications">("overview");
 
   useEffect(() => {
-    const session = getStoredPortalSession();
-
-    if (!session) {
-      window.location.href = "/login";
-      return;
-    }
-
-    if (session.profile.role !== "player") {
-      window.location.href = "/coach-dashboard";
-      return;
-    }
-
     let ignore = false;
+    let sessionCheckTimer: number | undefined;
 
-    queueMicrotask(() => {
-      if (ignore) return;
-      setSession(session);
+    const redirectForSession = (currentSession: PortalSession | null) => {
+      if (!currentSession) {
+        window.location.href = "/login";
+        return false;
+      }
+
+      if (currentSession.profile.role !== "player") {
+        window.location.href = "/coach-dashboard";
+        return false;
+      }
+
+      return true;
+    };
+
+    const bootstrap = async () => {
+      const currentSession = await getFreshPortalSession();
+      if (ignore || !currentSession || !redirectForSession(currentSession)) return;
+
+      setSession(currentSession);
       setIsChecking(false);
-    });
 
-    getMagicData(session.access_token)
-      .then((siteData) => {
-        if (!ignore) setData(siteData);
-      })
-      .finally(() => {
-        if (!ignore) setIsChecking(false);
-      });
+      getMagicData(currentSession.access_token)
+        .then((siteData) => {
+          if (!ignore) setData(siteData);
+        })
+        .catch((error) => {
+          console.error("Failed to load player dashboard data:", error);
+        });
 
+      sessionCheckTimer = window.setInterval(async () => {
+        const freshSession = await getFreshPortalSession();
+        if (!ignore && !redirectForSession(freshSession)) {
+          if (sessionCheckTimer) window.clearInterval(sessionCheckTimer);
+        }
+      }, 60_000);
+    };
+
+    void bootstrap();
     return () => {
       ignore = true;
+      if (sessionCheckTimer) window.clearInterval(sessionCheckTimer);
     };
   }, []);
 
@@ -74,7 +88,7 @@ export default function PlayerDashboardPage() {
   const activeRoster = data.players.filter((item) => item.status === "active");
 
   function handleLogout() {
-    clearPortalSession();
+    void signOutFromPortal();
     window.location.href = "/login";
   }
 

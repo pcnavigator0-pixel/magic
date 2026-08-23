@@ -35,7 +35,7 @@ import {
   type ShopProduct,
 } from "@/lib/magic-data";
 import { formatImageUrlsForStorage, parseImageUrls } from "@/lib/news-images";
-import { clearPortalSession, getFreshPortalSession, getStoredPortalSession, type PortalSession } from "@/lib/portal-auth";
+import { getFreshPortalSession, signOutFromPortal, type PortalSession } from "@/lib/portal-auth";
 import styles from "./coach-dashboard.module.css";
 
 const panels = [
@@ -90,23 +90,52 @@ export default function CoachDashboardPage() {
   }, [isMobileMenuOpen]);
 
   useEffect(() => {
-    const session = getStoredPortalSession();
+    let ignore = false;
+    let sessionCheckTimer: number | undefined;
 
-    if (!session) {
-      window.location.href = "/login";
-      return;
-    }
+    const redirectForSession = (session: PortalSession | null) => {
+      if (!session) {
+        window.location.href = "/login";
+        return false;
+      }
 
-    if (session.profile.role !== "coach") {
-      window.location.href = "/player-dashboard";
-      return;
-    }
+      if (session.profile.role !== "coach") {
+        window.location.href = "/player-dashboard";
+        return false;
+      }
 
-    loadDashboard(session).catch((error) => {
-      console.error("Failed to load dashboard:", error);
-      setFormError("Failed to load dashboard data. Using default view.");
-      applyDashboardData(fallbackMagicData, session);
-    });
+      return true;
+    };
+
+    const checkSession = async () => {
+      const session = await getFreshPortalSession();
+      if (ignore || !redirectForSession(session)) return;
+      return session;
+    };
+
+    const bootstrap = async () => {
+      const session = await checkSession();
+      if (!session || ignore) return;
+
+      loadDashboard(session).catch((error) => {
+        console.error("Failed to load dashboard:", error);
+        setFormError("Failed to load dashboard data. Using default view.");
+        applyDashboardData(fallbackMagicData, session);
+      });
+
+      sessionCheckTimer = window.setInterval(async () => {
+        const freshSession = await getFreshPortalSession();
+        if (!ignore && !redirectForSession(freshSession)) {
+          window.clearInterval(sessionCheckTimer);
+        }
+      }, 60_000);
+    };
+
+    void bootstrap();
+    return () => {
+      ignore = true;
+      if (sessionCheckTimer) window.clearInterval(sessionCheckTimer);
+    };
   }, []);
 
   function applyDashboardData(data: MagicData, session?: PortalSession) {
@@ -378,7 +407,7 @@ export default function CoachDashboardPage() {
   }
 
   function handleLogout() {
-    clearPortalSession();
+    void signOutFromPortal();
     window.location.href = "/login";
   }
 
