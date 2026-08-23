@@ -84,7 +84,7 @@ export function MatchesBoard({ matches: initialMatches, players }: { matches: Ma
 
   return (
     <main className="matches-page">
-      <section className="matches-hero" aria-labelledby="matches-title">
+      <section className={`matches-hero${featuredLiveMatch ? "" : " no-live-widget"}`} aria-labelledby="matches-title">
         <div className="matches-hero-copy">
           <h1 id="matches-title">Matches</h1>
           <p>Stay updated with all Magic Initiative Rwanda matches, live scores, results and more.</p>
@@ -111,7 +111,7 @@ export function MatchesBoard({ matches: initialMatches, players }: { matches: Ma
           </div>
         </div>
 
-        <LiveWidget match={featuredLiveMatch} now={now} />
+        {featuredLiveMatch ? <LiveWidget match={featuredLiveMatch} now={now} /> : null}
       </section>
 
       <button
@@ -195,15 +195,8 @@ export function MatchesBoard({ matches: initialMatches, players }: { matches: Ma
   );
 }
 
-function LiveWidget({ match, now }: { match?: Match; now: Date }) {
-  if (!match) {
-    return (
-      <aside className="matches-live-widget">
-        <div className="matches-live-label"><span /> Live Right Now</div>
-        <div className="matches-widget-empty">No live match is running right now.</div>
-      </aside>
-    );
-  }
+function LiveWidget({ match, now }: { match: Match; now: Date }) {
+  if (!match) return null;
 
   return (
     <aside className="matches-live-widget">
