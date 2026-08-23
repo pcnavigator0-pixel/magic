@@ -17,6 +17,7 @@ export function EventList({ events }: EventListProps) {
   const [category, setCategory] = useState(defaultCategory);
   const [status, setStatus] = useState(defaultStatus);
   const [visibleCount, setVisibleCount] = useState(batchSize);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   const sortedEvents = useMemo(
@@ -68,6 +69,16 @@ export function EventList({ events }: EventListProps) {
   }, [category, query, status]);
 
   useEffect(() => {
+    if (!isFilterOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isFilterOpen]);
+
+  useEffect(() => {
     if (!hasMore) return;
 
     const marker = loadMoreRef.current;
@@ -88,7 +99,34 @@ export function EventList({ events }: EventListProps) {
 
   return (
     <>
-      <section className="event-filter-panel" aria-label="Event filters">
+      {isFilterOpen && (
+        <button
+          className="event-filter-scrim"
+          type="button"
+          aria-label="Close event filters"
+          onClick={() => setIsFilterOpen(false)}
+        />
+      )}
+
+      <button
+        className={`event-filter-fab${isFilterOpen ? " is-open" : ""}`}
+        type="button"
+        aria-expanded={isFilterOpen}
+        aria-controls="event-filter-panel"
+        onClick={() => setIsFilterOpen((open) => !open)}
+      >
+        <i className="fa-solid fa-sliders" aria-hidden="true" />
+        Filters
+      </button>
+
+      <section id="event-filter-panel" className={`event-filter-panel${isFilterOpen ? " is-open" : ""}`} aria-label="Event filters">
+        <div className="event-filter-drawer-head">
+          <strong>Filter events</strong>
+          <button type="button" aria-label="Close event filters" onClick={() => setIsFilterOpen(false)}>
+            <i className="fa-solid fa-xmark" aria-hidden="true" />
+          </button>
+        </div>
+
         <label>
           <span>Search events</span>
           <input
