@@ -384,12 +384,24 @@ function PlayerAvatar({ player, name }: { player: Player | null; name: string })
 }
 
 function ScoreLine({ match, now }: { match: Match; now?: Date }) {
+  if (match.status === "live" && now) {
+    return (
+      <div className="live-matchup">
+        <TeamMark name={homeTeamName(match)} />
+        <div className="live-score">
+          <strong>{match.home_score} - {match.away_score}</strong>
+        </div>
+        <TeamMark name={match.opponent_name || "Opponent"} variant="away" />
+        <div className="live-status"><LiveClock match={match} now={now} /></div>
+      </div>
+    );
+  }
+
   return (
     <div className="teams-row">
       <TeamMark name={homeTeamName(match)} />
       <div className="match-score">
         <strong>{match.home_score} - {match.away_score}</strong>
-        {match.status === "live" && now ? <LiveClock match={match} now={now} /> : null}
       </div>
       <TeamMark name={match.opponent_name || "Opponent"} variant="away" />
     </div>

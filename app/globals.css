@@ -4216,6 +4216,62 @@ body.modal-open {
   text-align: center;
 }
 
+.live-matchup {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-areas:
+    "home score away"
+    "status status status";
+  gap: 6px;
+  min-width: 0;
+  align-items: center;
+}
+
+.live-matchup > .team-mark:nth-child(1) {
+  grid-area: home;
+}
+
+.live-matchup > .live-score {
+  grid-area: score;
+  min-width: 58px;
+  text-align: center;
+}
+
+.live-matchup > .team-mark:nth-child(3) {
+  grid-area: away;
+}
+
+.live-status {
+  display: flex;
+  min-width: 0;
+  grid-area: status;
+  justify-content: center;
+}
+
+.live-status small {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #fff0ea;
+  color: #e64a19;
+  padding: 4px 9px;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.1;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.live-score strong {
+  display: block;
+  font-size: clamp(18px, 2vw, 26px);
+  letter-spacing: -0.07em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
 .match-card-topline {
   display: flex;
   min-width: 0;
@@ -4737,6 +4793,25 @@ body.modal-open {
   .upcoming-card .match-vs {
     font-size: 15px;
     letter-spacing: -0.06em;
+  }
+
+  .live-matchup {
+    gap: 4px;
+  }
+
+  .live-matchup > .live-score {
+    min-width: 0;
+  }
+
+  .live-score strong {
+    font-size: 15px;
+    letter-spacing: -0.08em;
+  }
+
+  .live-status small {
+    max-width: 100%;
+    padding: 4px 7px;
+    font-size: 8px;
   }
 
   .finished-card .match-score strong {
