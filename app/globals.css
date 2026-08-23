@@ -3872,7 +3872,9 @@ body.modal-open {
   font-weight: 800;
 }
 
-.matches-filter-fab {
+.matches-filter-fab,
+.matches-filter-scrim,
+.matches-filter-drawer-head {
   display: none;
 }
 
@@ -4483,6 +4485,17 @@ body.modal-open {
   }
 }
 
+@keyframes filterDrawerUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 100%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
 @keyframes matchesFade {
   from {
     opacity: 0;
@@ -4529,18 +4542,62 @@ body.modal-open {
   }
 
   .matches-filter-bar.is-open {
+    position: fixed;
+    left: 50%;
+    bottom: 0;
+    z-index: 110;
     display: grid;
-    margin-top: -28px;
-    margin-bottom: 28px;
-    padding: 14px;
-    border-radius: 12px;
+    width: min(100% - 24px, 720px);
+    max-height: min(82vh, 620px);
+    gap: 12px;
+    margin: 0;
+    transform: translateX(-50%);
+    overflow-y: auto;
+    border: 1px solid #e2e8ed;
+    border-bottom: 0;
+    border-radius: 18px 18px 0 0;
+    padding: 18px 18px calc(24px + env(safe-area-inset-bottom));
+    box-shadow: 0 -18px 50px rgba(15, 23, 42, 0.2);
+    animation: filterDrawerUp 0.24s ease-out both;
+  }
+
+  .matches-filter-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 105;
+    display: block;
+    border: 0;
+    background: rgba(15, 23, 42, 0.48);
+    animation: matchesFade 0.2s ease-out both;
+    cursor: pointer;
+  }
+
+  .matches-filter-drawer-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: #111827;
+    font-size: 16px;
+  }
+
+  .matches-filter-drawer-head button {
+    display: grid;
+    width: 32px;
+    height: 32px;
+    place-items: center;
+    border: 1px solid #e2e8ed;
+    border-radius: 50%;
+    background: #ffffff;
+    color: #111827;
+    cursor: pointer;
   }
 
   .matches-filter-fab {
     position: fixed;
     right: 16px;
     bottom: 16px;
-    z-index: 100;
+    z-index: 120;
     display: inline-flex;
     min-height: 46px;
     align-items: center;
@@ -4617,7 +4674,7 @@ body.modal-open {
     position: fixed;
     right: 16px;
     bottom: 16px;
-    z-index: 100;
+    z-index: 120;
     display: inline-flex;
     min-height: 46px;
     align-items: center;
@@ -4649,10 +4706,10 @@ body.modal-open {
   }
 
   .matches-filter-bar.is-open {
-    margin-top: -28px;
-    margin-bottom: 28px;
-    padding: 14px;
-    border-radius: 12px;
+    width: min(100% - 20px, 640px);
+    max-height: 86vh;
+    margin: 0;
+    padding: 16px 14px calc(22px + env(safe-area-inset-bottom));
   }
 
   .matches-grid-item {

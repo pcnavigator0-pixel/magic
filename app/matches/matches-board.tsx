@@ -25,6 +25,16 @@ export function MatchesBoard({ matches: initialMatches, players }: { matches: Ma
   }, []);
 
   useEffect(() => {
+    if (!filtersOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [filtersOpen]);
+
+  useEffect(() => {
     let isMounted = true;
     const refreshMatches = async () => {
       const data = await getMagicData();
@@ -126,7 +136,23 @@ export function MatchesBoard({ matches: initialMatches, players }: { matches: Ma
         {activeFilters > 0 ? <b>{activeFilters}</b> : null}
       </button>
 
+      {filtersOpen ? (
+        <button
+          type="button"
+          className="matches-filter-scrim"
+          aria-label="Close filters"
+          onClick={() => setFiltersOpen(false)}
+        />
+      ) : null}
+
       <section id="matches-filter-bar" className={`matches-filter-bar${filtersOpen ? " is-open" : ""}`} aria-label="Match filters">
+        <div className="matches-filter-drawer-head">
+          <strong>Filter matches</strong>
+          <button type="button" aria-label="Close filters" onClick={() => setFiltersOpen(false)}>
+            <i className="fa-solid fa-xmark" />
+          </button>
+        </div>
+
         <label className="matches-search">
           <i className="fa-solid fa-magnifying-glass" />
           <input
