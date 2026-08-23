@@ -4216,6 +4216,22 @@ body.modal-open {
   text-align: center;
 }
 
+.finished-card .match-card-topline {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.finished-card .match-card-topline .match-context {
+  min-width: 0;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .finished-card .match-score strong {
   font-size: clamp(18px, 1.8vw, 24px);
   letter-spacing: -0.07em;
@@ -4240,9 +4256,26 @@ body.modal-open {
   word-break: normal;
 }
 
+.finished-meta {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 6px;
+  min-width: 0;
+}
+
+.finished-meta .match-meta {
+  min-width: 0;
+  justify-content: flex-start;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .finished-card .match-mvp span {
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .match-vs {
@@ -4558,8 +4591,8 @@ body.modal-open {
   }
 
   .match-card {
-    gap: 7px;
-    padding: 9px;
+    gap: 5px;
+    padding: 8px;
     border-radius: 10px;
   }
 
@@ -4611,9 +4644,13 @@ body.modal-open {
     line-height: 1.15;
   }
 
+  .finished-meta {
+    gap: 3px;
+  }
+
   .match-mvp {
     gap: 4px;
-    padding: 6px;
+    padding: 5px;
     font-size: 9px;
   }
 
@@ -4633,8 +4670,8 @@ body.modal-open {
   }
 
   .match-actions {
-    margin: 3px -9px -9px;
-    padding: 7px 6px;
+    margin: 3px -8px -8px;
+    padding: 6px 5px;
   }
 
   .matches-scroll-controls button {

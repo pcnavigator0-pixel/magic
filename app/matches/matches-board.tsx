@@ -349,11 +349,15 @@ function FinishedMatchCard({ match, players }: { match: Match; players: Player[]
 
   return (
     <article className="match-card finished-card">
-      <span className="match-tag tag-final">Final</span>
-      <div className="match-context">{match.league}</div>
+      <div className="match-card-topline">
+        <span className="match-tag tag-final">Final</span>
+        <div className="match-context">{match.league}</div>
+      </div>
       <ScoreLine match={match} />
-      <div className="match-meta"><i className="fa-regular fa-calendar" /> {formatDisplayDate(match.match_date)}</div>
-      <div className="match-meta"><i className="fa-solid fa-location-dot" /> {match.venue || "Venue not set"}</div>
+      <div className="finished-meta">
+        <div className="match-meta"><i className="fa-regular fa-calendar" /> {formatDisplayDate(match.match_date)}</div>
+        <div className="match-meta" title={match.venue || "Venue not set"}><i className="fa-solid fa-location-dot" /> {match.venue || "Venue not set"}</div>
+      </div>
       {mvpName ? (
         <div className="match-mvp">
           <PlayerAvatar player={mvp} name={mvpName} />
