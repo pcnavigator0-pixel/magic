@@ -4216,7 +4216,7 @@ body.modal-open {
   text-align: center;
 }
 
-.finished-card .match-card-topline {
+.match-card-topline {
   display: flex;
   min-width: 0;
   align-items: center;
@@ -4224,7 +4224,7 @@ body.modal-open {
   gap: 8px;
 }
 
-.finished-card .match-card-topline .match-context {
+.match-card-topline .match-context {
   min-width: 0;
   overflow: hidden;
   text-align: right;
@@ -4254,6 +4254,27 @@ body.modal-open {
   max-width: 74px;
   overflow-wrap: normal;
   word-break: normal;
+}
+
+.upcoming-meta {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 6px;
+  min-width: 0;
+}
+
+.upcoming-meta .match-meta,
+.live-venue {
+  min-width: 0;
+  justify-content: flex-start;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.live-card .match-actions,
+.upcoming-card .match-actions {
+  margin-top: 2px;
 }
 
 .finished-meta {
@@ -4741,6 +4762,28 @@ body.modal-open {
 
   .match-vs {
     font-size: 10px;
+  }
+
+  .upcoming-meta {
+    gap: 3px;
+  }
+
+  .upcoming-meta .match-meta,
+  .live-venue {
+    font-size: 8px;
+  }
+
+  .countdown {
+    min-width: 0;
+    gap: 3px;
+    font-size: 9px;
+  }
+
+  .countdown strong {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .match-actions {

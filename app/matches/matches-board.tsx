@@ -311,10 +311,12 @@ function MatchSection({
 function LiveMatchCard({ match, now }: { match: Match; now: Date }) {
   return (
     <article className="match-card live-card">
-      <span className="match-tag tag-live"><i className="fa-solid fa-tower-broadcast" /> Live</span>
-      <div className="match-context">{match.league}</div>
+      <div className="match-card-topline">
+        <span className="match-tag tag-live"><i className="fa-solid fa-tower-broadcast" /> Live</span>
+        <div className="match-context">{match.league}</div>
+      </div>
       <ScoreLine match={match} now={now} />
-      <div className="match-meta"><i className="fa-solid fa-location-dot" /> {match.venue || "Venue not set"}</div>
+      <div className="match-meta live-venue" title={match.venue || "Venue not set"}><i className="fa-solid fa-location-dot" /> {match.venue || "Venue not set"}</div>
       <div className="match-actions">
         <a href="#" className="match-action primary"><i className="fa-regular fa-circle-play" /> Watch Live</a>
         <a href="#" className="match-action">Match Details <i className="fa-solid fa-chevron-right" /></a>
@@ -326,16 +328,20 @@ function LiveMatchCard({ match, now }: { match: Match; now: Date }) {
 function UpcomingMatchCard({ match, now }: { match: Match; now: Date }) {
   return (
     <article className="match-card upcoming-card">
-      <span className="match-tag tag-upcoming">Upcoming</span>
-      <div className="match-context">{match.league}</div>
+      <div className="match-card-topline">
+        <span className="match-tag tag-upcoming">Upcoming</span>
+        <div className="match-context">{match.league}</div>
+      </div>
       <div className="teams-row">
         <TeamMark name={homeTeamName(match)} />
         <strong className="match-vs">VS</strong>
         <TeamMark name={match.opponent_name || "Opponent"} variant="away" />
       </div>
-      <div className="match-meta"><i className="fa-regular fa-calendar" /> {formatMatchDateTime(match)}</div>
-      <div className="match-meta"><i className="fa-solid fa-location-dot" /> {match.venue || "Venue not set"}</div>
-      <div className="match-actions">
+      <div className="upcoming-meta">
+        <div className="match-meta" title={formatMatchDateTime(match)}><i className="fa-regular fa-calendar" /> {formatMatchDateTime(match)}</div>
+        <div className="match-meta" title={match.venue || "Venue not set"}><i className="fa-solid fa-location-dot" /> {match.venue || "Venue not set"}</div>
+      </div>
+      <div className="match-actions upcoming-actions">
         <span className="countdown"><i className="fa-regular fa-clock" /> Starts in <strong>{formatCountdown(matchDate(match), now)}</strong></span>
         <button type="button" className="match-action"><i className="fa-regular fa-bell" /> Set Reminder</button>
       </div>
