@@ -835,6 +835,10 @@
 }
 
 @media (max-width: 650px) {
+  .dashboardContainer {
+    min-width: 0;
+  }
+
   .statsGrid {
     grid-template-columns: 1fr;
   }
@@ -886,12 +890,23 @@
   }
 
   .tabNavigation {
-    padding: 0 1rem;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 0 0.5rem;
+    overflow: hidden;
   }
 
   .tabBtn {
-    padding: 0.75rem 1rem;
-    font-size: 0.85rem;
+    min-width: 0;
+    padding: 0.75rem 0.25rem;
+    font-size: 0.72rem;
+    line-height: 1.2;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
   .heroContent h1 {
