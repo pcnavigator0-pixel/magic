@@ -79,7 +79,13 @@ export function CartButton() {
             </div>
 
             {items.length === 0 ? (
-              <p className="cart-empty">Your cart is empty.</p>
+              <div className="cart-empty-state">
+                <p className="cart-empty">Your cart is empty.</p>
+                <a className="cart-empty-link" href="/shop">
+                  Browse products
+                  <i className="fa-solid fa-arrow-right" aria-hidden="true" />
+                </a>
+              </div>
             ) : (
               <>
                 <div className="cart-items">
