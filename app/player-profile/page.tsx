@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getPlayerProfileWithPortal } from "@/lib/magic-data";
-import { dashboardPath, getFreshPortalSession, getStoredPortalSession, type PortalSession } from "@/lib/portal-auth";
-import styles from "../login/login.module.css";
+import { getPlayerProfileWithPortal, type Player } from "@/lib/magic-data";
+import { dashboardPath, getFreshPortalSession, getStoredPortalSession, type PortalProfile, type PortalSession } from "@/lib/portal-auth";
+import authStyles from "../login/login.module.css";
+import styles from "./player-profile.module.css";
 
 type ProfileData = {
-  player: any;
-  portalProfile: any;
+  player: Player;
+  portalProfile: PortalProfile | null;
 };
 
 export default function PlayerProfilePage() {
@@ -35,13 +36,12 @@ export default function PlayerProfilePage() {
 
         setSession(freshSession);
 
-        // Get player profile - use portal profile's player_id
         if (freshSession.profile.player_id) {
           const profileData = await getPlayerProfileWithPortal(
             freshSession.profile.player_id,
             freshSession.access_token
           );
-          
+
           if (profileData) {
             setProfile(profileData);
           } else {
@@ -60,14 +60,16 @@ export default function PlayerProfilePage() {
     loadProfile();
   }, []);
 
+  const pageClassName = `${authStyles.page} ${styles.profilePage}`;
+
   if (loading) {
     return (
-      <main className={styles.page}>
-        <Link href="/" className={styles.logo} aria-label="Magic Initiative Rwanda home">
-          <span className={styles.ball}>🏀</span>
-          <span className={styles.title}>Magic Initiative Rwanda</span>
+      <main className={pageClassName}>
+        <Link href="/" className={authStyles.logo} aria-label="Magic Initiative Rwanda home">
+          <span className={authStyles.ball}>🏀</span>
+          <span className={authStyles.title}>Magic Initiative Rwanda</span>
         </Link>
-        <section className={styles.card}>
+        <section className={`${authStyles.card} ${styles.profileCard}`}>
           <p style={{ textAlign: "center", color: "#a0aab2" }}>Loading profile...</p>
         </section>
       </main>
@@ -76,14 +78,14 @@ export default function PlayerProfilePage() {
 
   if (error) {
     return (
-      <main className={styles.page}>
-        <Link href="/" className={styles.logo} aria-label="Magic Initiative Rwanda home">
-          <span className={styles.ball}>🏀</span>
-          <span className={styles.title}>Magic Initiative Rwanda</span>
+      <main className={pageClassName}>
+        <Link href="/" className={authStyles.logo} aria-label="Magic Initiative Rwanda home">
+          <span className={authStyles.ball}>🏀</span>
+          <span className={authStyles.title}>Magic Initiative Rwanda</span>
         </Link>
-        <section className={styles.card}>
+        <section className={`${authStyles.card} ${styles.profileCard}`}>
           <p style={{ color: "#e64a19", textAlign: "center" }}>⚠️ {error}</p>
-          <Link href={session ? dashboardPath(session.profile.role) : "/login"} className={styles.submit} style={{ display: "inline-block", textDecoration: "none", marginTop: "20px", textAlign: "center", width: "100%" }}>
+          <Link href={session ? dashboardPath(session.profile.role) : "/login"} className={authStyles.submit} style={{ display: "inline-block", textDecoration: "none", marginTop: "20px", textAlign: "center", width: "100%" }}>
             Back to Dashboard
           </Link>
         </section>
@@ -93,12 +95,12 @@ export default function PlayerProfilePage() {
 
   if (!profile) {
     return (
-      <main className={styles.page}>
-        <Link href="/" className={styles.logo} aria-label="Magic Initiative Rwanda home">
-          <span className={styles.ball}>🏀</span>
-          <span className={styles.title}>Magic Initiative Rwanda</span>
+      <main className={pageClassName}>
+        <Link href="/" className={authStyles.logo} aria-label="Magic Initiative Rwanda home">
+          <span className={authStyles.ball}>🏀</span>
+          <span className={authStyles.title}>Magic Initiative Rwanda</span>
         </Link>
-        <section className={styles.card}>
+        <section className={`${authStyles.card} ${styles.profileCard}`}>
           <p style={{ textAlign: "center", color: "#a0aab2" }}>No profile data available</p>
         </section>
       </main>
@@ -106,136 +108,102 @@ export default function PlayerProfilePage() {
   }
 
   const { player, portalProfile } = profile;
+  const playerStatus = player.status ? `${player.status.charAt(0).toUpperCase()}${player.status.slice(1)}` : "Unknown";
+  const accountRole = portalProfile?.role
+    ? `${portalProfile.role.charAt(0).toUpperCase()}${portalProfile.role.slice(1)}`
+    : "Player";
 
   return (
-    <main className={styles.page}>
-      <Link href="/" className={styles.logo} aria-label="Magic Initiative Rwanda home">
-        <span className={styles.ball}>🏀</span>
-        <span className={styles.title}>Magic Initiative Rwanda</span>
+    <main className={pageClassName}>
+      <Link href="/" className={authStyles.logo} aria-label="Magic Initiative Rwanda home">
+        <span className={authStyles.ball}>🏀</span>
+        <span className={authStyles.title}>Magic Initiative Rwanda</span>
       </Link>
 
-      <section className={styles.card} style={{ maxWidth: "500px" }}>
-        <h1 className={styles.heading}>Your Profile</h1>
-        
+      <section className={`${authStyles.card} ${styles.profileCard}`}>
+        <h1 className={`${authStyles.heading} ${styles.profileHeading}`}>Your Profile</h1>
+
         {player.photo_url && (
-          <div style={{ textAlign: "center", marginBottom: "24px" }}>
-            <img
-              src={player.photo_url}
-              alt={player.full_name}
-              style={{
-                width: "120px",
-                height: "120px",
-                borderRadius: "50%",
-                objectFit: "cover",
-                border: "3px solid #e64a19"
-              }}
-            />
+          <div className={styles.avatarWrap}>
+            <img className={styles.avatar} src={player.photo_url} alt={player.full_name} />
           </div>
         )}
 
-        <div style={{ backgroundColor: "#f5f5f5", borderRadius: "8px", padding: "16px", marginBottom: "20px" }}>
-          <h2 style={{ fontSize: "14px", fontWeight: "600", color: "#666", marginTop: "0", marginBottom: "12px", textTransform: "uppercase" }}>
-            📋 Player Information (players table)
-          </h2>
-          <div style={{ display: "grid", gap: "12px", fontSize: "14px" }}>
-            <div>
-              <span style={{ color: "#999", fontSize: "12px" }}>Player Name</span>
-              <p style={{ margin: "4px 0 0 0", fontWeight: "600", color: "#11171e" }}>{player.full_name}</p>
+        <div className={styles.infoPanel}>
+          <h2 className={styles.panelTitle}>📋 Player Information</h2>
+          <div className={styles.infoGrid}>
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>Player Name</span>
+              <p className={styles.infoValue}>{player.full_name}</p>
             </div>
-            <div>
-              <span style={{ color: "#999", fontSize: "12px" }}>Position</span>
-              <p style={{ margin: "4px 0 0 0", fontWeight: "600", color: "#e64a19" }}>{player.position}</p>
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>Position</span>
+              <p className={`${styles.infoValue} ${styles.positionValue}`}>{player.position || "-"}</p>
             </div>
-            <div style={{ display: "flex", gap: "16px" }}>
-              <div style={{ flex: 1 }}>
-                <span style={{ color: "#999", fontSize: "12px" }}>Jersey Number</span>
-                <p style={{ margin: "4px 0 0 0", fontWeight: "600" }}>#{player.jersey_number}</p>
+            <div className={styles.metaRow}>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>Jersey Number</span>
+                <p className={styles.infoValue}>#{player.jersey_number || "-"}</p>
               </div>
-              <div style={{ flex: 1 }}>
-                <span style={{ color: "#999", fontSize: "12px" }}>Height</span>
-                <p style={{ margin: "4px 0 0 0", fontWeight: "600" }}>{player.height || "-"}</p>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>Height</span>
+                <p className={styles.infoValue}>{player.height || "-"}</p>
               </div>
             </div>
-            <div>
-              <span style={{ color: "#999", fontSize: "12px" }}>Status</span>
-              <p style={{ margin: "4px 0 0 0", fontWeight: "600", color: player.status === "active" ? "green" : "#999" }}>
-                {player.status.charAt(0).toUpperCase() + player.status.slice(1)}
-              </p>
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>Status</span>
+              <p className={styles.infoValue} style={{ color: player.status === "active" ? "#218739" : "#89929a" }}>{playerStatus}</p>
             </div>
             {player.bio && (
-              <div>
-                <span style={{ color: "#999", fontSize: "12px" }}>Bio</span>
-                <p style={{ margin: "4px 0 0 0", color: "#666" }}>{player.bio}</p>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>Bio</span>
+                <p className={`${styles.infoValue} ${styles.bioValue}`}>{player.bio}</p>
               </div>
             )}
           </div>
         </div>
 
-        <div style={{ backgroundColor: "#e64a1910", borderRadius: "8px", padding: "16px", marginBottom: "20px", border: "1px solid #e64a1930" }}>
-          <h2 style={{ fontSize: "14px", fontWeight: "600", color: "#e64a19", marginTop: "0", marginBottom: "12px", textTransform: "uppercase" }}>
-            🔐 Portal Account (portal_profiles table)
-          </h2>
-          <div style={{ display: "grid", gap: "12px", fontSize: "14px" }}>
-            <div>
-              <span style={{ color: "#999", fontSize: "12px" }}>Account Email</span>
-              <p style={{ margin: "4px 0 0 0", fontWeight: "600", color: "#11171e", wordBreak: "break-all" }}>
-                {portalProfile?.email || player.email || "Not set"}
-              </p>
+        <div className={`${styles.infoPanel} ${styles.accountPanel}`}>
+          <h2 className={styles.panelTitle}>🔐 Portal Account</h2>
+          <div className={styles.infoGrid}>
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>Account Email</span>
+              <p className={`${styles.infoValue} ${styles.emailValue}`}>{portalProfile?.email || player.email || "Not set"}</p>
             </div>
-            <div>
-              <span style={{ color: "#999", fontSize: "12px" }}>Display Name</span>
-              <p style={{ margin: "4px 0 0 0", fontWeight: "600" }}>
-                {portalProfile?.full_name || player.full_name}
-              </p>
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>Display Name</span>
+              <p className={styles.infoValue}>{portalProfile?.full_name || player.full_name}</p>
             </div>
-            <div>
-              <span style={{ color: "#999", fontSize: "12px" }}>Account Role</span>
-              <p style={{ margin: "4px 0 0 0", fontWeight: "600", color: "#e64a19" }}>
-                {portalProfile?.role ? portalProfile.role.charAt(0).toUpperCase() + portalProfile.role.slice(1) : "Player"}
-              </p>
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>Account Role</span>
+              <p className={`${styles.infoValue} ${styles.roleValue}`}>{accountRole}</p>
             </div>
-            <div>
-              <span style={{ color: "#999", fontSize: "12px" }}>Registration Code</span>
-              <code style={{
-                display: "inline-block",
-                marginTop: "4px",
-                padding: "6px 10px",
-                backgroundColor: "#ffffff",
-                borderRadius: "4px",
-                fontSize: "13px",
-                fontWeight: "bold",
-                letterSpacing: "1px",
-                color: "#e64a19"
-              }}>
-                {player.registration_code}
-              </code>
-              <span style={{ marginLeft: "8px", color: "green", fontSize: "12px", fontWeight: "600" }}>
-                ✓ Registered
-              </span>
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>Registration Code</span>
+              <div className={styles.registrationRow}>
+                <code className={styles.registrationCode}>{player.registration_code || "-"}</code>
+                <span className={styles.registered}>✓ Registered</span>
+              </div>
             </div>
             {portalProfile?.created_at && (
-              <div>
-                <span style={{ color: "#999", fontSize: "12px" }}>Account Created</span>
-                <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "#666" }}>
-                  {new Date(portalProfile.created_at).toLocaleDateString()}
-                </p>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>Account Created</span>
+                <p className={styles.infoValue}>{new Date(portalProfile.created_at).toLocaleDateString()}</p>
               </div>
             )}
           </div>
         </div>
 
-        <div style={{ backgroundColor: "#f0f0f050", borderRadius: "8px", padding: "12px", marginBottom: "20px", fontSize: "12px", color: "#666", textAlign: "center", borderLeft: "3px solid #e64a19" }}>
-          <p style={{ margin: "0" }}>
-            ✓ <strong>Account Verified:</strong> Your player record and portal account are linked and synchronized.
-          </p>
+        <div className={styles.verifiedNotice}>
+          <p>✓ <strong>Account Verified:</strong> Your player record and portal account are linked and synchronized.</p>
         </div>
 
-        <Link href={session ? dashboardPath(session.profile.role) : "/login"} className={styles.submit} style={{ display: "block", textDecoration: "none", textAlign: "center" }}>
+        <Link href={session ? dashboardPath(session.profile.role) : "/login"} className={authStyles.submit} style={{ display: "block", textDecoration: "none", textAlign: "center" }}>
           Back to Dashboard
         </Link>
       </section>
 
-      <Link href="/" className={styles.backHome}>Back to website</Link>
+      <Link href="/" className={authStyles.backHome}>Back to website</Link>
     </main>
   );
 }
