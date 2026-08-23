@@ -4698,8 +4698,31 @@ body.modal-open {
     grid-template-columns: 1fr;
   }
 
-  .match-score {
-    order: -1;
+  .finished-card .teams-row {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 3px;
+  }
+
+  .finished-card .match-score {
+    order: initial;
+    min-width: 0;
+  }
+
+  .finished-card .match-score strong {
+    font-size: 15px;
+    letter-spacing: -0.09em;
+  }
+
+  .finished-card .team-mark span {
+    width: 28px;
+    height: 28px;
+    font-size: 8px;
+  }
+
+  .finished-card .team-mark strong {
+    max-width: 52px;
+    font-size: 8px;
+    line-height: 1.05;
   }
 
   .match-actions {
