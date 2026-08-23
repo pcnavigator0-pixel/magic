@@ -581,12 +581,14 @@ export async function deleteShopProduct(id: string, accessToken?: string) {
   return deleteRow<ShopProduct>("shop_products", id, accessToken);
 }
 
-export async function insertNotification(payload: {
+type NotificationPayload = {
   recipient_player_id: string;
   sender_coach_id?: string | null;
   message: string;
   duration_days: number;
-}, accessToken?: string) {
+};
+
+export async function insertNotification(payload: NotificationPayload, accessToken?: string) {
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + payload.duration_days);
 
@@ -600,6 +602,24 @@ export async function insertNotification(payload: {
       duration_days: payload.duration_days,
       expires_at: expiresAt.toISOString(),
     }),
+  }, accessToken);
+}
+
+export async function insertNotifications(payloads: NotificationPayload[], accessToken?: string) {
+  const expiresAt = new Date();
+  const durationDays = payloads[0]?.duration_days || 7;
+  expiresAt.setDate(expiresAt.getDate() + durationDays);
+
+  return restFetch<Notification[]>("notifications", {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify(payloads.map((payload) => ({
+      recipient_player_id: payload.recipient_player_id,
+      sender_coach_id: payload.sender_coach_id || null,
+      message: payload.message,
+      duration_days: payload.duration_days,
+      expires_at: expiresAt.toISOString(),
+    }))),
   }, accessToken);
 }
 

@@ -18,7 +18,7 @@ import {
   insertCoachProfile,
   insertEvent,
   insertNewsPost,
-  insertNotification,
+  insertNotifications,
   insertPlayer,
   insertShopProduct,
   updateCoachProfile,
@@ -69,8 +69,14 @@ export default function CoachDashboardPage() {
   const [showProductForm, setShowProductForm] = useState(false);
   const [showNotificationForm, setShowNotificationForm] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [notificationForm, setNotificationForm] = useState({
-    selectedPlayer: "",
+  const [notificationForm, setNotificationForm] = useState<{
+    recipientMode: "all" | "selected";
+    selectedPlayers: string[];
+    message: string;
+    duration: number;
+  }>({
+    recipientMode: "all",
+    selectedPlayers: [],
     message: "",
     duration: 7,
   });
@@ -369,23 +375,33 @@ export default function CoachDashboardPage() {
 
     await runDashboardAction(async () => {
       const session = await requireFreshCoachSession();
-      const payload = {
-        recipient_player_id: notificationForm.selectedPlayer,
-        sender_coach_id: dashboardData.coachProfile?.id || null,
-        message: notificationForm.message,
-        duration_days: notificationForm.duration,
-      };
+      const recipientIds = notificationForm.recipientMode === "all"
+        ? dashboardData.players.map((player) => player.id)
+        : notificationForm.selectedPlayers;
 
-      await insertNotification(payload, session.access_token);
+      if (recipientIds.length === 0) {
+        throw new Error("Select at least one roster player.");
+      }
+
+      await insertNotifications(
+        recipientIds.map((recipientId) => ({
+          recipient_player_id: recipientId,
+          sender_coach_id: dashboardData.coachProfile?.id || null,
+          message: notificationForm.message,
+          duration_days: notificationForm.duration,
+        })),
+        session.access_token,
+      );
       await refreshDashboard();
       setNotificationForm({
-        selectedPlayer: "",
+        recipientMode: "all",
+        selectedPlayers: [],
         message: "",
         duration: 7,
       });
       setShowNotificationForm(false);
       form.reset();
-    }, "Notification sent to player successfully.");
+    }, "Notification sent to the selected roster players.");
   }
 
   async function handleDelete(label: string, collection: CollectionKey, id: string, action: () => Promise<unknown>) {
@@ -923,21 +939,48 @@ export default function CoachDashboardPage() {
           {showNotificationForm && (
           <form onSubmit={handleNotificationCreate} className={styles.editorForm}>
             <div className={styles.formGrid}>
-              <InputBox label="Select Player">
-                <select 
-                  name="selectedPlayer" 
-                  value={notificationForm.selectedPlayer}
-                  onChange={(e) => setNotificationForm({ ...notificationForm, selectedPlayer: e.target.value })}
-                  required
+              <InputBox label="Recipients">
+                <select
+                  name="recipientMode"
+                  value={notificationForm.recipientMode}
+                  onChange={(e) => setNotificationForm({
+                    ...notificationForm,
+                    recipientMode: e.target.value as "all" | "selected",
+                    selectedPlayers: [],
+                  })}
                 >
-                  <option value="">Choose a player...</option>
-                  {dashboardData.players.map((player) => (
-                    <option key={player.id} value={player.id}>
-                      {player.full_name} (#{player.jersey_number})
-                    </option>
-                  ))}
+                  <option value="all">All roster players ({dashboardData.players.length})</option>
+                  <option value="selected">Selected players</option>
                 </select>
               </InputBox>
+              {notificationForm.recipientMode === "selected" && (
+                <div className={styles.recipientPicker}>
+                  <span className={styles.inputLabel}>Choose players</span>
+                  <div className={styles.recipientList}>
+                    {dashboardData.players.map((player) => {
+                      const isSelected = notificationForm.selectedPlayers.includes(player.id);
+                      return (
+                        <label className={styles.recipientOption} key={player.id}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => setNotificationForm({
+                              ...notificationForm,
+                              selectedPlayers: isSelected
+                                ? notificationForm.selectedPlayers.filter((id) => id !== player.id)
+                                : [...notificationForm.selectedPlayers, player.id],
+                            })}
+                          />
+                          <span>{player.full_name} (#{player.jersey_number})</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <small className={styles.recipientSummary}>
+                    {notificationForm.selectedPlayers.length} player{notificationForm.selectedPlayers.length === 1 ? "" : "s"} selected
+                  </small>
+                </div>
+              )}
               <InputBox label="Duration (Days)">
                 <input 
                   name="duration" 
