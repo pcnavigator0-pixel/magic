@@ -123,7 +123,8 @@ export default function Home() {
           {rotatingRecentPost && <div className="hero-right">
             <div className="recent-post-card recent-post-rotator">
               <span className="card-label">Recent post</span>
-              <div className="recent-post-frame" key={rotatingRecentPost.id}>
+              <Link className="recent-post-frame home-content-link" href={`/news/${rotatingRecentPost.slug}`} key={rotatingRecentPost.id} aria-label={`Read ${rotatingRecentPost.title}`}>
+
               {rotatingRecentPost.image_url && <div className="card-img-wrapper">
                 <NewsImageCarousel imageValue={rotatingRecentPost.image_url} alt={rotatingRecentPost.title} autoAdvanceMs={3400} />
               </div>}
@@ -133,7 +134,7 @@ export default function Home() {
                 <span className="meta-date">• {formatDisplayDate(featuredNews.published_at)}</span>
               </div>
               <h2 className="card-title">{rotatingRecentPost.title}</h2>
-              </div>
+              </Link>
               {recentPosts.length > 1 && (
                 <div className="recent-post-dots" aria-label="Recent posts">
                   {recentPosts.map((post, index) => (
@@ -186,7 +187,8 @@ export default function Home() {
         <h2 className="section-title">Trending now</h2>
 
         <div className="articles-container">
-          <div className="article-featured">
+          <Link className="article-featured home-content-link" href={`/news/${featuredNews.slug}`}>
+
             {featuredNews.image_url && (
               <NewsImageCarousel
                 imageValue={featuredNews.image_url}
@@ -201,7 +203,7 @@ export default function Home() {
               {featuredNews.excerpt && <p>{featuredNews.excerpt}</p>}
               <div className="article-meta-footer">{formatDisplayDate(featuredNews.published_at)} • Magic Initiative Rwanda</div>
             </div>
-          </div>
+          </Link>
 
           <div className="articles-sidebar">
             {miniNews.map((post) => (
@@ -212,6 +214,7 @@ export default function Home() {
                 category={post.category}
                 date={formatDisplayDate(post.published_at)}
                 title={post.title}
+                slug={post.slug}
               />
             ))}
           </div>
@@ -299,6 +302,7 @@ export default function Home() {
               title={post.title}
               category={post.category}
               date={formatDisplayDate(post.published_at)}
+              slug={post.slug}
             />
           ))}
         </div>
@@ -311,12 +315,12 @@ export default function Home() {
 
         <div className="events-preview-grid">
           {siteData.events.slice(0, 3).map((event) => (
-            <div className="event-preview-card" key={event.id}>
+            <Link className="event-preview-card home-content-link" href={`/events#event-${event.id}`} key={event.id}>
               <span>{formatDisplayDate(event.event_date)}</span>
               <h3>{event.title}</h3>
               <p>{event.venue}</p>
               <EventCountdown eventDate={event.event_date} eventTime={event.event_time} />
-            </div>
+            </Link>
           ))}
         </div>
         <a className="section-more" href="/events">View more events</a>
@@ -443,15 +447,15 @@ function TeamIcon({ color, variant }: { color: string; variant: TeamIconVariant 
   );
 }
 
-function MiniArticle({ image, alt, category, date, title }: { image: string | null; alt: string; category: string; date: string; title: string }) {
+function MiniArticle({ image, alt, category, date, title, slug }: { image: string | null; alt: string; category: string; date: string; title: string; slug: string }) {
   return (
-    <div className="mini-article-row">
+    <Link className="mini-article-row home-content-link" href={`/news/${slug}`} aria-label={`Read ${title}`}>
       {image && <NewsImageCarousel imageValue={image} alt={alt} autoAdvanceMs={3400} />}
       <div>
         <div className="mini-meta"><span>{category}</span> • {date}</div>
         <h3 className="mini-title">{title}</h3>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -497,13 +501,13 @@ function PlayerCard({ number, name, position, image }: { number: string; name: s
   );
 }
 
-function NewsCard({ image, title, category, date }: { image: string | null; title: string; category: string; date: string }) {
+function NewsCard({ image, title, category, date, slug }: { image: string | null; title: string; category: string; date: string; slug: string }) {
   return (
-    <div className="news-card">
+    <Link className="news-card home-content-link" href={`/news/${slug}`} aria-label={`Read ${title}`}>
       {image && <NewsImageCarousel imageValue={image} alt={`${title} Feature Image`} autoAdvanceMs={3400} />}
       <span className="section-label news-card-label">{category}</span>
       <h3>{title}</h3>
       <div className="news-footer-meta">{date} • Magic Initiative Rwanda</div>
-    </div>
+    </Link>
   );
 }

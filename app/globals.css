@@ -5554,3 +5554,22 @@ body.modal-open {
     font-size: 11px;
   }
 }
+
+/* Home content cards are full-card links */
+.home-content-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.home-content-link:focus-visible {
+  outline: 3px solid rgba(230, 74, 25, 0.35);
+  outline-offset: 4px;
+}
+
+.article-featured.home-content-link:hover h2,
+.news-card.home-content-link:hover h3,
+.event-preview-card.home-content-link:hover h3,
+.mini-article-row.home-content-link:hover .mini-title,
+.recent-post-frame.home-content-link:hover .card-title {
+  color: var(--primary-orange);
+}
