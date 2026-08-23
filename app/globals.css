@@ -4553,34 +4553,88 @@ body.modal-open {
 
   .matches-grid-item,
   .match-section.finished .matches-grid-item {
-    flex-basis: calc(100vw - 40px);
+    flex-basis: calc((100vw - 50px) / 2);
+    min-width: 0;
   }
 
   .match-card {
-    padding: 12px;
+    gap: 7px;
+    padding: 9px;
+    border-radius: 10px;
   }
 
-  .finished-card .match-score strong {
-    font-size: 20px;
+  .match-tag {
+    min-height: 20px;
+    gap: 4px;
+    padding: 0 6px;
+    font-size: 8px;
   }
 
-  .finished-card .team-mark strong {
-    max-width: 64px;
-    font-size: 10px;
+  .match-context {
+    font-size: 9px;
   }
 
-  .finished-card .match-meta {
-    font-size: 10px;
+  .teams-row {
+    gap: 3px;
   }
 
-  .match-actions {
-    margin: 3px -12px -12px;
-    padding-inline: 9px;
+  .team-mark {
+    gap: 4px;
   }
 
   .team-mark span {
-    width: 34px;
-    height: 34px;
+    width: 30px;
+    height: 30px;
+    font-size: 9px;
+  }
+
+  .team-mark strong {
+    max-width: 58px;
+    font-size: 9px;
+    line-height: 1.1;
+  }
+
+  .match-score {
+    min-width: 0;
+  }
+
+  .match-score strong,
+  .finished-card .match-score strong {
+    font-size: 16px;
+    letter-spacing: -0.08em;
+  }
+
+  .match-meta,
+  .finished-card .match-meta {
+    gap: 4px;
+    font-size: 9px;
+    line-height: 1.15;
+  }
+
+  .match-mvp {
+    gap: 4px;
+    padding: 6px;
+    font-size: 9px;
+  }
+
+  .match-mvp-avatar {
+    width: 26px;
+    height: 26px;
+  }
+
+  .match-actions {
+    min-height: 34px;
+    gap: 4px;
+    font-size: 9px;
+  }
+
+  .finished-card .team-mark strong {
+    max-width: 58px;
+  }
+
+  .match-actions {
+    margin: 3px -9px -9px;
+    padding: 7px 6px;
   }
 
   .matches-scroll-controls button {
