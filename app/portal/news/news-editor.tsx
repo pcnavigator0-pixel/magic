@@ -456,6 +456,15 @@ export function NewsEditor({ postId }: NewsEditorProps) {
               </div>
             ))}
 
+            <div className={styles.addRow}>
+              <button className={styles.secondaryButton} type="button" onClick={() => addBlock("paragraph")}>
+                + Add paragraph
+              </button>
+              <button className={styles.secondaryButton} type="button" onClick={() => addBlock("image")}>
+                + Add image
+              </button>
+            </div>
+
             <div className={styles.actionBar}>
               <Link className={styles.secondaryButton} href="/coach-dashboard">Cancel</Link>
               <button className={styles.primaryButton} type="button" disabled={isSaving || !session} onClick={savePost}>
