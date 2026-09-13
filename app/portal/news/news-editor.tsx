@@ -135,8 +135,8 @@ export function NewsEditor({ postId }: NewsEditorProps) {
     setBlocks((current) => [
       ...current,
       type === "paragraph"
-        ? { type: "paragraph", text: "" }
-        : { type: "image", url: "", align: "left", caption: null },
+        ? { type: "paragraph", text: "", align: "left", weight: "normal", size: "medium" }
+        : { type: "image", url: "", align: "left", width: "medium", caption: null },
     ]);
   }
 
@@ -370,11 +370,35 @@ export function NewsEditor({ postId }: NewsEditorProps) {
                 </div>
 
                 {block.type === "paragraph" ? (
-                  <textarea
-                    rows={5}
-                    value={block.text}
-                    onChange={(event) => updateBlock(index, { text: event.target.value })}
-                  />
+                  <>
+                    <div className={styles.formatRow}>
+                      <label className={styles.inlineField}>
+                        <span>Align</span>
+                        <select value={block.align || "left"} onChange={(event) => updateBlock(index, { align: event.target.value as "left" | "center" | "right" })}>
+                          <option value="left">Left</option>
+                          <option value="center">Center</option>
+                          <option value="right">Right</option>
+                        </select>
+                      </label>
+                      <label className={styles.inlineField}>
+                        <span>Size</span>
+                        <select value={block.size || "medium"} onChange={(event) => updateBlock(index, { size: event.target.value as "small" | "medium" | "large" })}>
+                          <option value="small">Small</option>
+                          <option value="medium">Medium</option>
+                          <option value="large">Large</option>
+                        </select>
+                      </label>
+                      <label className={styles.boldToggle}>
+                        <input type="checkbox" checked={block.weight === "bold"} onChange={(event) => updateBlock(index, { weight: event.target.checked ? "bold" : "normal" })} />
+                        Bold
+                      </label>
+                    </div>
+                    <textarea
+                      rows={5}
+                      value={block.text}
+                      onChange={(event) => updateBlock(index, { text: event.target.value })}
+                    />
+                  </>
                 ) : (
                   <div className={styles.imageGrid}>
                     {block.url ? <img className={styles.thumb} src={block.url} alt={block.caption || ""} /> : <div className={styles.thumb} />}
@@ -391,6 +415,14 @@ export function NewsEditor({ postId }: NewsEditorProps) {
                         <span>Caption</span>
                         <input value={block.caption || ""} onChange={(event) => updateBlock(index, { caption: event.target.value || null })} />
                       </label>
+                      <label className={styles.fullField}>
+                        <span>Image width</span>
+                        <select value={block.width || "medium"} onChange={(event) => updateBlock(index, { width: event.target.value as "small" | "medium" | "large" })}>
+                          <option value="small">Small — more text beside it</option>
+                          <option value="medium">Medium</option>
+                          <option value="large">Large</option>
+                        </select>
+                      </label>
                       <div className={styles.alignRow} aria-label="Image alignment">
                         <button
                           className={`${styles.alignButton} ${block.align === "left" ? styles.alignButtonActive : ""}`}
@@ -405,6 +437,13 @@ export function NewsEditor({ postId }: NewsEditorProps) {
                           onClick={() => updateBlock(index, { align: "right" })}
                         >
                           Right
+                        </button>
+                        <button
+                          className={`${styles.alignButton} ${block.align === "full" ? styles.alignButtonActive : ""}`}
+                          type="button"
+                          onClick={() => updateBlock(index, { align: "full" })}
+                        >
+                          Full width
                         </button>
                       </div>
                     </div>

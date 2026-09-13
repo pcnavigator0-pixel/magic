@@ -13,13 +13,17 @@ export function ArticleBody({ blocks, fallbackText, className }: ArticleBodyProp
     <div className={`article-body ${className || ""}`}>
       {articleBlocks.map((block, index) => {
         if (block.type === "paragraph") {
-          return <p key={`paragraph-${index}`}>{block.text}</p>;
+          const align = block.align === "center" || block.align === "right" ? block.align : "left";
+          const size = block.size === "small" || block.size === "large" ? block.size : "medium";
+          const weight = block.weight === "bold" ? "bold" : "normal";
+          return <p className={`article-paragraph-align-${align} article-paragraph-size-${size} article-paragraph-weight-${weight}`} key={`paragraph-${index}`}>{block.text}</p>;
         }
 
-        const align = block.align === "right" ? "right" : "left";
+        const align = block.align === "right" || block.align === "full" ? block.align : "left";
+        const width = block.width === "small" || block.width === "large" ? block.width : "medium";
 
         return (
-          <figure className={`article-image-block article-image-${align}`} key={`image-${block.url}-${index}`}>
+          <figure className={`article-image-block article-image-${align} article-image-width-${width}`} key={`image-${block.url}-${index}`}>
             <img src={block.url} alt={block.caption || ""} />
             {block.caption && <figcaption>{block.caption}</figcaption>}
           </figure>
@@ -35,10 +39,16 @@ export function normalizeArticleBlocks(
 ): ArticleBlock[] {
   if (Array.isArray(blocks)) {
     return blocks
-      .map((block) => {
+      .map((block): ArticleBlock | null => {
         if (block?.type === "paragraph") {
           const text = String(block.text || "").trim();
-          return text ? { type: "paragraph" as const, text } : null;
+          return text ? {
+            type: "paragraph" as const,
+            text,
+            align: block.align === "center" || block.align === "right" ? block.align : "left" as const,
+            weight: block.weight === "bold" ? "bold" as const : "normal" as const,
+            size: block.size === "small" || block.size === "large" ? block.size : "medium" as const,
+          } : null;
         }
 
         if (block?.type === "image") {
@@ -48,7 +58,8 @@ export function normalizeArticleBlocks(
           return {
             type: "image" as const,
             url,
-            align: block.align === "right" ? "right" as const : "left" as const,
+            align: block.align === "right" || block.align === "full" ? block.align : "left" as const,
+            width: block.width === "small" || block.width === "large" ? block.width : "medium" as const,
             caption: block.caption ? String(block.caption).trim() : null,
           };
         }

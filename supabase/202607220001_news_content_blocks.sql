@@ -29,12 +29,28 @@ as $$
         (
           block.item->>'type' = 'paragraph'
           and jsonb_typeof(block.item->'text') = 'string'
+          and (
+            not (block.item ? 'align')
+            or block.item->>'align' in ('left', 'center', 'right')
+          )
+          and (
+            not (block.item ? 'weight')
+            or block.item->>'weight' in ('normal', 'bold')
+          )
+          and (
+            not (block.item ? 'size')
+            or block.item->>'size' in ('small', 'medium', 'large')
+          )
         )
         or
         (
           block.item->>'type' = 'image'
           and jsonb_typeof(block.item->'url') = 'string'
           and block.item->>'align' in ('left', 'right')
+          and (
+            not (block.item ? 'width')
+            or block.item->>'width' in ('small', 'medium', 'large')
+          )
           and (
             not (block.item ? 'caption')
             or block.item->'caption' = 'null'::jsonb

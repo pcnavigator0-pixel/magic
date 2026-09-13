@@ -2155,6 +2155,26 @@ body.modal-open {
   margin: 0 0 22px;
 }
 
+.article-paragraph-align-center {
+  text-align: center;
+}
+
+.article-paragraph-align-right {
+  text-align: right;
+}
+
+.article-paragraph-size-small {
+  font-size: 0.88em;
+}
+
+.article-paragraph-size-large {
+  font-size: 1.2em;
+}
+
+.article-paragraph-weight-bold {
+  font-weight: 800;
+}
+
 .article-image-block {
   width: 45%;
   max-width: 360px;
@@ -2184,8 +2204,42 @@ body.modal-open {
   margin-left: 24px;
 }
 
+.article-image-width-small {
+  width: 30%;
+  max-width: 240px;
+}
+
+.article-image-width-large {
+  width: 58%;
+  max-width: 520px;
+}
+
+.article-image-full {
+  float: none;
+  width: 100%;
+  max-width: none;
+  margin: 0 0 24px;
+}
+
 .article-image-right figcaption {
   text-align: right;
+}
+
+@media (max-width: 640px) {
+  .article-image-block,
+  .article-image-width-small,
+  .article-image-width-large {
+    float: none;
+    width: 100%;
+    max-width: none;
+    margin: 0 0 22px;
+  }
+
+  .article-image-left,
+  .article-image-right {
+    margin-left: 0;
+    margin-right: 0;
+  }
 }
 
 .public-card span,

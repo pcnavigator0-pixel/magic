@@ -88,8 +88,14 @@ export type NewsPost = {
 };
 
 export type ArticleBlock =
-  | { type: "paragraph"; text: string }
-  | { type: "image"; url: string; align: "left" | "right"; caption: string | null };
+  | {
+      type: "paragraph";
+      text: string;
+      align?: "left" | "center" | "right";
+      weight?: "normal" | "bold";
+      size?: "small" | "medium" | "large";
+    }
+  | { type: "image"; url: string; align: "left" | "right" | "full"; width?: "small" | "medium" | "large"; caption: string | null };
 
 export type CoachProfile = {
   id: string;
