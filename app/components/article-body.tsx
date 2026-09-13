@@ -17,19 +17,18 @@ export function ArticleBody({ blocks, fallbackText, className, matches = [] }: A
           const align = block.align === "center" || block.align === "right" ? block.align : "left";
           const size = block.size === "small" || block.size === "large" ? block.size : "medium";
           const weight = block.weight === "bold" ? "bold" : "normal";
-          const relatedMatches = (block.related_match_ids || [])
-            .map((id) => matches.find((match) => match.id === id))
-            .filter((match): match is Match => Boolean(match));
           return <p className={`article-paragraph-align-${align} article-paragraph-size-${size} article-paragraph-weight-${weight} ${block.clear ? "article-paragraph-clear" : ""}`} key={`paragraph-${index}`}>
-            {block.text}
-            {relatedMatches.map((match) => <a className="article-match-link" href={`/matches#match-${match.id}`} key={match.id}>View Match</a>)}
+            {renderInlineMatches(block.text, matches)}
           </p>;
         }
 
         if (block.type === "list") {
           const ListTag = block.ordered ? "ol" : "ul";
           return <ListTag className="article-list-block" key={`list-${index}`}>
-            {block.items.map((item, itemIndex) => <li key={`list-item-${itemIndex}`}>{item}</li>)}
+            {block.items.map((item, itemIndex) => {
+              const text = typeof item === "string" ? item : item.text;
+              return <li key={`list-item-${itemIndex}`}>{renderInlineMatches(text, matches)}</li>;
+            })}
           </ListTag>;
         }
 
@@ -69,7 +68,7 @@ export function normalizeArticleBlocks(
 
         if (block?.type === "list") {
           const items = Array.isArray(block.items)
-            ? block.items.map((item) => String(item || "").trim()).filter(Boolean)
+            ? block.items.map((item) => typeof item === "string" ? { text: item.trim(), related_match_ids: [] } : { text: String(item.text || "").trim(), related_match_ids: item.related_match_ids || [] }).filter((item) => item.text)
             : [];
           return items.length ? { type: "list" as const, ordered: block.ordered === true, items } : null;
         }
@@ -103,4 +102,15 @@ export function normalizeArticleBlocks(
     .map((paragraph) => paragraph.trim())
     .filter(Boolean)
     .map((text) => ({ type: "paragraph", text }));
+}
+
+function renderInlineMatches(text: string, matches: Match[]) {
+  const parts = text.split(/(\[\[match:[^\]]+\]\])/g);
+  return parts.map((part, index) => {
+    const matchId = part.match(/^\[\[match:([^\]]+)\]\]$/)?.[1];
+    const match = matchId ? matches.find((candidate) => candidate.id === matchId) : null;
+    return match
+      ? <a className="article-match-link" href={`/matches#match-${match.id}`} key={`match-${index}`}>View Match</a>
+      : <span key={`text-${index}`}>{part}</span>;
+  });
 }

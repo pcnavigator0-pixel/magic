@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { ArticleBody, normalizeArticleBlocks } from "@/app/components/article-body";
 import { uploadImageToBucket } from "@/lib/client-image-upload";
 import {
@@ -51,6 +51,7 @@ export function NewsEditor({ postId }: NewsEditorProps) {
   const [blocks, setBlocks] = useState<ArticleBlock[]>([{ type: "paragraph", text: "" }]);
   const [availableNews, setAvailableNews] = useState<NewsPost[]>([]);
   const [availableMatches, setAvailableMatches] = useState<Match[]>([]);
+  const textareas = useRef<Record<string, HTMLTextAreaElement | null>>({});
   const [publishedAt, setPublishedAt] = useState<string | null>(null);
   const [slugTouched, setSlugTouched] = useState(Boolean(postId));
   const [status, setStatus] = useState("Checking coach access...");
@@ -144,7 +145,7 @@ export function NewsEditor({ postId }: NewsEditorProps) {
       type === "paragraph"
         ? { type: "paragraph", text: "", align: "left", weight: "normal", size: "medium" }
         : type === "list"
-          ? { type: "list", ordered: false, items: [""] }
+          ? { type: "list", ordered: false, items: [{ text: "", related_match_ids: [] }] }
           : { type: "image", url: "", align: "left", width: "medium", caption: null },
     ]);
   }
@@ -165,7 +166,33 @@ export function NewsEditor({ postId }: NewsEditorProps) {
   function removeRelatedMatch(index: number, matchId: string) {
     const block = blocks[index];
     if (block?.type !== "paragraph") return;
-    updateBlock(index, { related_match_ids: (block.related_match_ids || []).filter((id) => id !== matchId) });
+    const token = `[[match:${matchId}]]`;
+    const tokenIndex = block.text.indexOf(token);
+    updateBlock(index, {
+      text: tokenIndex >= 0 ? `${block.text.slice(0, tokenIndex)}${block.text.slice(tokenIndex + token.length)}` : block.text,
+      related_match_ids: (block.related_match_ids || []).filter((id) => id !== matchId),
+    });
+  }
+
+  function insertMatchToken(index: number, matchId: string, itemIndex?: number) {
+    if (!matchId) return;
+    const block = blocks[index];
+    const key = itemIndex === undefined ? `paragraph-${index}` : `list-${index}-${itemIndex}`;
+    const textarea = textareas.current[key];
+    const start = textarea?.selectionStart ?? (itemIndex === undefined && block?.type === "paragraph" ? block.text.length : 0);
+    const token = `[[match:${matchId}]]`;
+
+    if (itemIndex === undefined && block?.type === "paragraph") {
+      updateBlock(index, { text: `${block.text.slice(0, start)}${token}${block.text.slice(start)}`, related_match_ids: [...(block.related_match_ids || []), matchId] });
+    } else if (itemIndex !== undefined && block?.type === "list") {
+      const item = block.items[itemIndex];
+      const text = typeof item === "string" ? item : item.text;
+      const related_match_ids = typeof item === "string" ? [] : (item.related_match_ids || []);
+      const items = block.items.map((current, currentIndex) => currentIndex === itemIndex
+        ? { text: `${text.slice(0, start)}${token}${text.slice(start)}`, related_match_ids: [...related_match_ids, matchId] }
+        : current);
+      updateBlock(index, { items });
+    }
   }
 
   function moveBlock(index: number, direction: -1 | 1) {
@@ -425,21 +452,22 @@ export function NewsEditor({ postId }: NewsEditorProps) {
                     <div className={styles.relatedMatches}>
                       <label className={styles.inlineField}>
                         <span>Add related match</span>
-                        <select value="" onChange={(event) => addRelatedMatch(index, event.target.value)}>
+                        <select value="" onChange={(event) => insertMatchToken(index, event.target.value)}>
                           <option value="">Choose a match...</option>
                           {availableMatches.map((match) => <option key={match.id} value={match.id}>{match.opponent_name || "Match"} — {match.match_date}</option>)}
                         </select>
                       </label>
                       <div className={styles.matchChips}>
-                        {(block.related_match_ids || []).map((matchId) => {
+                        {(block.related_match_ids || []).map((matchId, matchIndex) => {
                           const match = availableMatches.find((candidate) => candidate.id === matchId);
-                          return <span className={styles.matchChip} key={matchId}>{match?.opponent_name || "Related match"}<button type="button" aria-label="Remove related match" onClick={() => removeRelatedMatch(index, matchId)}>×</button></span>;
+                          return <span className={styles.matchChip} key={`${matchId}-${matchIndex}`}>Inline: {match?.opponent_name || "Related match"}<button type="button" aria-label="Remove related match" onClick={() => removeRelatedMatch(index, matchId)}>×</button></span>;
                         })}
                       </div>
                     </div>
                     <textarea
                       rows={5}
                       value={block.text}
+                      ref={(element) => { textareas.current[`paragraph-${index}`] = element; }}
                       onChange={(event) => updateBlock(index, { text: event.target.value })}
                     />
                   </>
@@ -452,10 +480,26 @@ export function NewsEditor({ postId }: NewsEditorProps) {
                         <option value="ordered">Ordered — steps</option>
                       </select>
                     </label>
-                    <label className={styles.fullField}>
-                      <span>One item per line</span>
-                      <textarea rows={5} value={block.items.join("\n")} onChange={(event) => updateBlock(index, { items: event.target.value.split("\n") })} />
-                    </label>
+                    {block.items.map((item, itemIndex) => {
+                      const text = typeof item === "string" ? item : item.text;
+                      const relatedIds = typeof item === "string" ? [] : (item.related_match_ids || []);
+                      return <div className={styles.listItemEditor} key={`list-item-${itemIndex}`}>
+                        <span className={styles.blockLabel}>Item {itemIndex + 1}</span>
+                        <textarea
+                          rows={2}
+                          value={text}
+                          ref={(element) => { textareas.current[`list-${index}-${itemIndex}`] = element; }}
+                          onChange={(event) => updateBlock(index, { items: block.items.map((current, currentIndex) => currentIndex === itemIndex ? { text: event.target.value, related_match_ids: relatedIds } : current) })}
+                        />
+                        <label className={styles.inlineField}>
+                          <span>Add related match</span>
+                          <select value="" onChange={(event) => insertMatchToken(index, event.target.value, itemIndex)}>
+                            <option value="">Choose a match...</option>
+                            {availableMatches.map((match) => <option key={match.id} value={match.id}>{match.opponent_name || "Match"} — {match.match_date}</option>)}
+                          </select>
+                        </label>
+                      </div>;
+                    })}
                   </div>
                 ) : (
                   <div className={styles.imageGrid}>
