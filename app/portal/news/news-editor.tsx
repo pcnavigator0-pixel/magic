@@ -7,6 +7,7 @@ import { uploadImageToBucket } from "@/lib/client-image-upload";
 import {
   createSlug,
   getNewsPostById,
+  getNewsPostsForEditor,
   insertNewsPost,
   updateNewsPost,
   type ArticleBlock,
@@ -25,6 +26,8 @@ type FormState = {
   category: string;
   excerpt: string;
   image_url: string;
+  previous_news_id: string;
+  next_news_id: string;
   is_published: boolean;
 };
 
@@ -34,6 +37,8 @@ const emptyForm: FormState = {
   category: "Club",
   excerpt: "",
   image_url: "",
+  previous_news_id: "",
+  next_news_id: "",
   is_published: true,
 };
 
@@ -41,6 +46,7 @@ export function NewsEditor({ postId }: NewsEditorProps) {
   const [session, setSession] = useState<PortalSession | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [blocks, setBlocks] = useState<ArticleBlock[]>([{ type: "paragraph", text: "" }]);
+  const [availableNews, setAvailableNews] = useState<NewsPost[]>([]);
   const [publishedAt, setPublishedAt] = useState<string | null>(null);
   const [slugTouched, setSlugTouched] = useState(Boolean(postId));
   const [status, setStatus] = useState("Checking coach access...");
@@ -67,6 +73,9 @@ export function NewsEditor({ postId }: NewsEditorProps) {
 
         if (!active) return;
         setSession(freshSession);
+
+        const allNews = await getNewsPostsForEditor(freshSession.access_token);
+        if (active) setAvailableNews(allNews.filter((candidate) => candidate.id !== postId));
 
         if (postId) {
           const post = await getNewsPostById(postId, freshSession.access_token);
@@ -101,6 +110,8 @@ export function NewsEditor({ postId }: NewsEditorProps) {
       category: post.category,
       excerpt: post.excerpt || "",
       image_url: post.image_url || "",
+      previous_news_id: post.previous_news_id || "",
+      next_news_id: post.next_news_id || "",
       is_published: post.is_published,
     });
     setBlocks(normalizeArticleBlocks(post.content, post.excerpt));
@@ -200,6 +211,8 @@ export function NewsEditor({ postId }: NewsEditorProps) {
         category: form.category.trim() || "Club",
         excerpt: form.excerpt.trim() || null,
         image_url: form.image_url.trim() || null,
+        previous_news_id: form.previous_news_id || null,
+        next_news_id: form.next_news_id || null,
         content: cleanedBlocks,
         published_at: publishedAt || new Date().toISOString(),
         is_published: form.is_published,
@@ -270,6 +283,20 @@ export function NewsEditor({ postId }: NewsEditorProps) {
               <label className={styles.field}>
                 <span>Upload cover image</span>
                 <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={uploadCover} />
+              </label>
+              <label className={styles.field}>
+                <span>Previous news <small>(optional)</small></span>
+                <select value={form.previous_news_id} onChange={(event) => updateForm("previous_news_id", event.target.value)}>
+                  <option value="">None</option>
+                  {availableNews.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.title}</option>)}
+                </select>
+              </label>
+              <label className={styles.field}>
+                <span>Next news <small>(optional)</small></span>
+                <select value={form.next_news_id} onChange={(event) => updateForm("next_news_id", event.target.value)}>
+                  <option value="">None</option>
+                  {availableNews.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.title}</option>)}
+                </select>
               </label>
               <label className={styles.checkField}>
                 <input

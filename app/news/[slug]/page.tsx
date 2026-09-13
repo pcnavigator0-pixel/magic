@@ -4,7 +4,7 @@ import { ArticleBody } from "@/app/components/article-body";
 import { NewsImageCarousel } from "@/app/components/news-image-carousel";
 import { PublicFooter } from "@/app/components/public-shell";
 import { SiteHeader } from "@/app/components/site-header";
-import { formatDisplayDate, getNewsPostBySlug } from "@/lib/magic-data";
+import { formatDisplayDate, getNewsPostById, getNewsPostBySlug } from "@/lib/magic-data";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +17,11 @@ export default async function NewsArticlePage({
   const post = await getNewsPostBySlug(slug);
 
   if (!post) notFound();
+
+  const [previousNews, nextNews] = await Promise.all([
+    post.previous_news_id ? getNewsPostById(post.previous_news_id) : Promise.resolve(null),
+    post.next_news_id ? getNewsPostById(post.next_news_id) : Promise.resolve(null),
+  ]);
 
   return (
     <>
@@ -45,6 +50,23 @@ export default async function NewsArticlePage({
           )}
 
           <ArticleBody blocks={post.content} fallbackText={post.excerpt} />
+
+          {(previousNews || nextNews) && (
+            <nav className="article-sequence" aria-label="Related news sequence">
+              {previousNews ? (
+                <Link className="article-sequence-link article-sequence-previous" href={`/news/${previousNews.slug}`}>
+                  <span>Previous story</span>
+                  <strong><i className="fa-solid fa-arrow-left" aria-hidden="true" /> {previousNews.title}</strong>
+                </Link>
+              ) : <span />}
+              {nextNews ? (
+                <Link className="article-sequence-link article-sequence-next" href={`/news/${nextNews.slug}`}>
+                  <span>Next story</span>
+                  <strong>{nextNews.title} <i className="fa-solid fa-arrow-right" aria-hidden="true" /></strong>
+                </Link>
+              ) : <span />}
+            </nav>
+          )}
         </article>
       </main>
       <PublicFooter />

@@ -83,6 +83,8 @@ export type NewsPost = {
   image_url: string | null;
   published_at: string;
   is_published: boolean;
+  previous_news_id?: string | null;
+  next_news_id?: string | null;
 };
 
 export type ArticleBlock =
@@ -320,6 +322,16 @@ export async function getNewsPostById(id: string, accessToken?: string): Promise
   );
 
   return posts[0] || null;
+}
+
+export async function getNewsPostsForEditor(accessToken: string): Promise<NewsPost[]> {
+  if (!canUseSupabase()) return [];
+
+  return restFetch<NewsPost[]>(
+    "news_posts?select=id,title,slug,published_at,is_published&order=published_at.desc&limit=200",
+    undefined,
+    accessToken,
+  );
 }
 
 export function createSlug(value: string) {
