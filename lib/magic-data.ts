@@ -95,6 +95,7 @@ export type ArticleBlock =
       weight?: "normal" | "bold";
       size?: "small" | "medium" | "large";
       clear?: boolean;
+      related_match_ids?: string[];
     }
   | { type: "list"; ordered: boolean; items: string[] }
   | { type: "image"; url: string; align: "left" | "right" | "full"; width?: "small" | "medium" | "large"; caption: string | null };

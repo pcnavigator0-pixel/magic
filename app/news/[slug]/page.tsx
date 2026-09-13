@@ -4,7 +4,7 @@ import { ArticleBody } from "@/app/components/article-body";
 import { NewsImageCarousel } from "@/app/components/news-image-carousel";
 import { PublicFooter } from "@/app/components/public-shell";
 import { SiteHeader } from "@/app/components/site-header";
-import { formatDisplayDate, getNewsPostById, getNewsPostBySlug } from "@/lib/magic-data";
+import { formatDisplayDate, getMagicData, getNewsPostById, getNewsPostBySlug } from "@/lib/magic-data";
 
 export const dynamic = "force-dynamic";
 
@@ -18,9 +18,10 @@ export default async function NewsArticlePage({
 
   if (!post) notFound();
 
-  const [previousNews, nextNews] = await Promise.all([
+  const [previousNews, nextNews, matchData] = await Promise.all([
     post.previous_news_id ? getNewsPostById(post.previous_news_id) : Promise.resolve(null),
     post.next_news_id ? getNewsPostById(post.next_news_id) : Promise.resolve(null),
+    getMagicData(),
   ]);
 
   return (
@@ -49,7 +50,7 @@ export default async function NewsArticlePage({
             />
           )}
 
-          <ArticleBody blocks={post.content} fallbackText={post.excerpt} />
+          <ArticleBody blocks={post.content} fallbackText={post.excerpt} matches={matchData.matches} />
 
           {(previousNews || nextNews) && (
             <nav className="article-sequence" aria-label="Related news sequence">

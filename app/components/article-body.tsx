@@ -1,12 +1,13 @@
-import type { ArticleBlock } from "@/lib/magic-data";
+import type { ArticleBlock, Match } from "@/lib/magic-data";
 
 type ArticleBodyProps = {
   blocks: ArticleBlock[] | string | null | undefined;
   fallbackText?: string | null;
   className?: string;
+  matches?: Match[];
 };
 
-export function ArticleBody({ blocks, fallbackText, className }: ArticleBodyProps) {
+export function ArticleBody({ blocks, fallbackText, className, matches = [] }: ArticleBodyProps) {
   const articleBlocks = normalizeArticleBlocks(blocks, fallbackText);
 
   return (
@@ -16,7 +17,13 @@ export function ArticleBody({ blocks, fallbackText, className }: ArticleBodyProp
           const align = block.align === "center" || block.align === "right" ? block.align : "left";
           const size = block.size === "small" || block.size === "large" ? block.size : "medium";
           const weight = block.weight === "bold" ? "bold" : "normal";
-          return <p className={`article-paragraph-align-${align} article-paragraph-size-${size} article-paragraph-weight-${weight} ${block.clear ? "article-paragraph-clear" : ""}`} key={`paragraph-${index}`}>{block.text}</p>;
+          const relatedMatches = (block.related_match_ids || [])
+            .map((id) => matches.find((match) => match.id === id))
+            .filter((match): match is Match => Boolean(match));
+          return <p className={`article-paragraph-align-${align} article-paragraph-size-${size} article-paragraph-weight-${weight} ${block.clear ? "article-paragraph-clear" : ""}`} key={`paragraph-${index}`}>
+            {block.text}
+            {relatedMatches.map((match) => <a className="article-match-link" href={`/matches#match-${match.id}`} key={match.id}>View Match</a>)}
+          </p>;
         }
 
         if (block.type === "list") {
@@ -56,6 +63,7 @@ export function normalizeArticleBlocks(
             weight: block.weight === "bold" ? "bold" as const : "normal" as const,
             size: block.size === "small" || block.size === "large" ? block.size : "medium" as const,
             clear: block.clear === true,
+            related_match_ids: Array.isArray(block.related_match_ids) ? block.related_match_ids.map(String).filter(Boolean) : [],
           } : null;
         }
 

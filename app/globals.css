@@ -2179,6 +2179,21 @@ body.modal-open {
   clear: both;
 }
 
+.article-match-link {
+  display: inline-block;
+  margin-left: 10px;
+  border-radius: 999px;
+  background: #fff0eb;
+  padding: 4px 10px;
+  color: var(--primary-orange);
+  font-size: 0.72em;
+  font-weight: 900;
+  line-height: 1.4;
+  text-decoration: none;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
 .article-list-block {
   clear: both;
   margin: 0 0 24px;

@@ -6,12 +6,14 @@ import { ArticleBody, normalizeArticleBlocks } from "@/app/components/article-bo
 import { uploadImageToBucket } from "@/lib/client-image-upload";
 import {
   createSlug,
+  getMagicData,
   getNewsPostById,
   getNewsPostsForEditor,
   insertNewsPost,
   updateNewsPost,
   updateNewsPostLinks,
   type ArticleBlock,
+  type Match,
   type NewsPost,
 } from "@/lib/magic-data";
 import { getFreshPortalSession, type PortalSession } from "@/lib/portal-auth";
@@ -48,6 +50,7 @@ export function NewsEditor({ postId }: NewsEditorProps) {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [blocks, setBlocks] = useState<ArticleBlock[]>([{ type: "paragraph", text: "" }]);
   const [availableNews, setAvailableNews] = useState<NewsPost[]>([]);
+  const [availableMatches, setAvailableMatches] = useState<Match[]>([]);
   const [publishedAt, setPublishedAt] = useState<string | null>(null);
   const [slugTouched, setSlugTouched] = useState(Boolean(postId));
   const [status, setStatus] = useState("Checking coach access...");
@@ -75,8 +78,12 @@ export function NewsEditor({ postId }: NewsEditorProps) {
         if (!active) return;
         setSession(freshSession);
 
-        const allNews = await getNewsPostsForEditor(freshSession.access_token);
+        const [allNews, matchData] = await Promise.all([
+          getNewsPostsForEditor(freshSession.access_token),
+          getMagicData(freshSession.access_token, true),
+        ]);
         if (active) setAvailableNews(allNews.filter((candidate) => candidate.id !== postId));
+        if (active) setAvailableMatches(matchData.matches);
 
         if (postId) {
           const post = await getNewsPostById(postId, freshSession.access_token);
@@ -146,6 +153,19 @@ export function NewsEditor({ postId }: NewsEditorProps) {
     setBlocks((current) => current.map((block, blockIndex) => (
       blockIndex === index ? ({ ...block, ...patch } as ArticleBlock) : block
     )));
+  }
+
+  function addRelatedMatch(index: number, matchId: string) {
+    if (!matchId) return;
+    const block = blocks[index];
+    if (block?.type !== "paragraph" || block.related_match_ids?.includes(matchId)) return;
+    updateBlock(index, { related_match_ids: [...(block.related_match_ids || []), matchId] });
+  }
+
+  function removeRelatedMatch(index: number, matchId: string) {
+    const block = blocks[index];
+    if (block?.type !== "paragraph") return;
+    updateBlock(index, { related_match_ids: (block.related_match_ids || []).filter((id) => id !== matchId) });
   }
 
   function moveBlock(index: number, direction: -1 | 1) {
@@ -402,6 +422,21 @@ export function NewsEditor({ postId }: NewsEditorProps) {
                         Start below images
                       </label>
                     </div>
+                    <div className={styles.relatedMatches}>
+                      <label className={styles.inlineField}>
+                        <span>Add related match</span>
+                        <select value="" onChange={(event) => addRelatedMatch(index, event.target.value)}>
+                          <option value="">Choose a match...</option>
+                          {availableMatches.map((match) => <option key={match.id} value={match.id}>{match.opponent_name || "Match"} — {match.match_date}</option>)}
+                        </select>
+                      </label>
+                      <div className={styles.matchChips}>
+                        {(block.related_match_ids || []).map((matchId) => {
+                          const match = availableMatches.find((candidate) => candidate.id === matchId);
+                          return <span className={styles.matchChip} key={matchId}>{match?.opponent_name || "Related match"}<button type="button" aria-label="Remove related match" onClick={() => removeRelatedMatch(index, matchId)}>×</button></span>;
+                        })}
+                      </div>
+                    </div>
                     <textarea
                       rows={5}
                       value={block.text}
@@ -508,7 +543,7 @@ export function NewsEditor({ postId }: NewsEditorProps) {
               ) : (
                 <div className={styles.previewPlaceholder}>Magic Initiative Rwanda</div>
               )}
-              <ArticleBody blocks={previewBlocks} fallbackText={form.excerpt} />
+              <ArticleBody blocks={previewBlocks} fallbackText={form.excerpt} matches={availableMatches} />
             </article>
           </aside>
         </div>

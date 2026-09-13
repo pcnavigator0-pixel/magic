@@ -320,6 +320,43 @@
   gap: 14px;
 }
 
+.relatedMatches {
+  display: grid;
+  gap: 10px;
+}
+
+.matchChips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.matchChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  background: #fff0eb;
+  padding: 7px 10px;
+  color: #9f2f12;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.matchChip button {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: #e64a19;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+}
+
 .preview {
   position: sticky;
   top: 24px;

@@ -321,7 +321,7 @@ function MatchSection({
         ) : null}
       </div>
       <div className="matches-grid" ref={scrollerRef}>
-        {matches.length ? matches.map((match) => <div className="matches-grid-item" key={match.id}>{render(match)}</div>) : <p className="matches-empty">{emptyText}</p>}
+        {matches.length ? matches.map((match) => <div className="matches-grid-item" id={`match-${match.id}`} key={match.id}>{render(match)}</div>) : <p className="matches-empty">{emptyText}</p>}
       </div>
     </section>
   );
