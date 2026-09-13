@@ -174,22 +174,44 @@ export function NewsEditor({ postId }: NewsEditorProps) {
     });
   }
 
+  function editorText(text: string) {
+    return text.replace(/\[\[match:([^\]]+)\]\]/g, (_, matchId: string) => {
+      const match = availableMatches.find((candidate) => candidate.id === matchId);
+      return match ? `[${match.opponent_name || "Match"} — ${match.match_date}]` : "[View Match]";
+    });
+  }
+
+  function storedText(text: string, relatedMatchIds: string[]) {
+    let nextText = text;
+    relatedMatchIds.forEach((matchId) => {
+      const match = availableMatches.find((candidate) => candidate.id === matchId);
+      const title = match ? `[${match.opponent_name || "Match"} — ${match.match_date}]` : "[View Match]";
+      nextText = nextText.replace(title, `[[match:${matchId}]]`);
+    });
+    return nextText;
+  }
+
   function insertMatchToken(index: number, matchId: string, itemIndex?: number) {
     if (!matchId) return;
     const block = blocks[index];
     const key = itemIndex === undefined ? `paragraph-${index}` : `list-${index}-${itemIndex}`;
     const textarea = textareas.current[key];
-    const start = textarea?.selectionStart ?? (itemIndex === undefined && block?.type === "paragraph" ? block.text.length : 0);
-    const token = `[[match:${matchId}]]`;
+    const match = availableMatches.find((candidate) => candidate.id === matchId);
+    const label = match ? `[${match.opponent_name || "Match"} — ${match.match_date}]` : "[View Match]";
 
     if (itemIndex === undefined && block?.type === "paragraph") {
-      updateBlock(index, { text: `${block.text.slice(0, start)}${token}${block.text.slice(start)}`, related_match_ids: [...(block.related_match_ids || []), matchId] });
+      const visibleText = editorText(block.text);
+      const start = textarea?.selectionStart ?? visibleText.length;
+      const nextVisibleText = `${visibleText.slice(0, start)}${label}${visibleText.slice(start)}`;
+      updateBlock(index, { text: storedText(nextVisibleText, [...(block.related_match_ids || []), matchId]), related_match_ids: [...(block.related_match_ids || []), matchId] });
     } else if (itemIndex !== undefined && block?.type === "list") {
       const item = block.items[itemIndex];
       const text = typeof item === "string" ? item : item.text;
       const related_match_ids = typeof item === "string" ? [] : (item.related_match_ids || []);
+      const visibleText = editorText(text);
+      const start = textarea?.selectionStart ?? visibleText.length;
       const items = block.items.map((current, currentIndex) => currentIndex === itemIndex
-        ? { text: `${text.slice(0, start)}${token}${text.slice(start)}`, related_match_ids: [...related_match_ids, matchId] }
+        ? { text: storedText(`${visibleText.slice(0, start)}${label}${visibleText.slice(start)}`, [...related_match_ids, matchId]), related_match_ids: [...related_match_ids, matchId] }
         : current);
       updateBlock(index, { items });
     }
@@ -466,9 +488,9 @@ export function NewsEditor({ postId }: NewsEditorProps) {
                     </div>
                     <textarea
                       rows={5}
-                      value={block.text}
+                      value={editorText(block.text)}
                       ref={(element) => { textareas.current[`paragraph-${index}`] = element; }}
-                      onChange={(event) => updateBlock(index, { text: event.target.value })}
+                      onChange={(event) => updateBlock(index, { text: storedText(event.target.value, block.related_match_ids || []) })}
                     />
                   </>
                 ) : block.type === "list" ? (
@@ -487,9 +509,9 @@ export function NewsEditor({ postId }: NewsEditorProps) {
                         <span className={styles.blockLabel}>Item {itemIndex + 1}</span>
                         <textarea
                           rows={2}
-                          value={text}
+                          value={editorText(text)}
                           ref={(element) => { textareas.current[`list-${index}-${itemIndex}`] = element; }}
-                          onChange={(event) => updateBlock(index, { items: block.items.map((current, currentIndex) => currentIndex === itemIndex ? { text: event.target.value, related_match_ids: relatedIds } : current) })}
+                          onChange={(event) => updateBlock(index, { items: block.items.map((current, currentIndex) => currentIndex === itemIndex ? { text: storedText(event.target.value, relatedIds), related_match_ids: relatedIds } : current) })}
                         />
                         <label className={styles.inlineField}>
                           <span>Add related match</span>
