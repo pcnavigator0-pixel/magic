@@ -136,7 +136,7 @@ export async function signInToPortal(email: string, password: string) {
 
   const profile = await getPortalProfile(auth.user.id, auth.access_token);
   if (!profile) {
-    throw new Error("This account does not have a Magic Initiative Rwanda portal role yet.");
+    throw new Error("This account does not have a Magic Basketball Initiatives portal role yet.");
   }
 
   const session: PortalSession = {
@@ -163,7 +163,7 @@ export async function refreshPortalSession(session: PortalSession) {
 
   const profile = await getPortalProfile(auth.user.id, auth.access_token);
   if (!profile) {
-    throw new Error("This account does not have a Magic Initiative Rwanda portal role yet.");
+    throw new Error("This account does not have a Magic Basketball Initiatives portal role yet.");
   }
 
   const refreshedSession: PortalSession = {

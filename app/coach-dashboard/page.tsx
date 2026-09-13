@@ -159,7 +159,7 @@ export default function CoachDashboardPage() {
     setDashboardData(data);
     setCoachName(profile?.full_name || session?.profile.full_name || "Coach");
     setCoachRole(profile?.role || "Coach");
-    setClubName(profile?.club_name || "Magic Initiative Rwanda");
+    setClubName(profile?.club_name || "Magic Basketball Initiatives");
   }
 
   async function refreshDashboard() {
@@ -474,9 +474,9 @@ export default function CoachDashboardPage() {
   return (
     <main className={styles.page}>
       <header className={styles.mobileHeader}>
-        <Link href="/" className={styles.mobileLogo} aria-label="Magic Initiative Rwanda home">
-          <span className={styles.ball}>BB</span>
-          <span className={styles.logoTitle}>Magic Initiative Rwanda</span>
+        <Link href="/" className={styles.mobileLogo} aria-label="Magic Basketball Initiatives home">
+          <span className={styles.ball}>MBI</span>
+          <span className={styles.logoTitle}>Magic Basketball Initiatives</span>
         </Link>
 
         <div className={styles.mobileHeaderActions}>
@@ -498,9 +498,9 @@ export default function CoachDashboardPage() {
       )}
 
       <aside className={`${styles.sidebar} ${isMobileMenuOpen ? styles.sidebarOpen : ""}`}>
-        <Link href="/" className={styles.logo} aria-label="Magic Initiative Rwanda home">
+        <Link href="/" className={styles.logo} aria-label="Magic Basketball Initiatives home">
           <span className={styles.ball}>🏀</span>
-          <span className={styles.logoTitle}>Magic Initiative Rwanda</span>
+          <span className={styles.logoTitle}>Magic Basketball Initiatives</span>
         </Link>
 
         <div className={styles.mobileDrawerHead}>
@@ -897,7 +897,7 @@ export default function CoachDashboardPage() {
           {showProductForm && (
           <form onSubmit={handleProductCreate} key={editingProduct?.id || "new-product"} className={styles.editorForm}>
             <div className={styles.formGrid}>
-              <InputBox label="Product Name"><input name="productName" type="text" placeholder="Magic Initiative Rwanda Black T-Shirt" defaultValue={editingProduct?.name || ""} required /></InputBox>
+              <InputBox label="Product Name"><input name="productName" type="text" placeholder="Magic Basketball Initiatives Black T-Shirt" defaultValue={editingProduct?.name || ""} required /></InputBox>
               <InputBox label="Category"><input name="productCategory" type="text" defaultValue={editingProduct?.category || "T-Shirts"} required /></InputBox>
               <InputBox label="Price"><input name="price" type="number" min="0" step="1" placeholder="18000" defaultValue={editingProduct ? editingProduct.price_cents / 100 : ""} required /></InputBox>
               <InputBox label="Currency">
@@ -1103,7 +1103,7 @@ export default function CoachDashboardPage() {
                   <MatchRow
                     key={match.id}
                     date={formatDisplayDate(match.match_date)}
-                    opponent={`${match.home_team?.name || "Magic Initiative Rwanda"} vs ${match.opponent_name || "Opponent"}`}
+                    opponent={`${match.home_team?.name || "Magic Basketball Initiatives"} vs ${match.opponent_name || "Opponent"}`}
                     score={`${match.home_score} - ${match.away_score}`}
                     status={match.home_score > match.away_score ? "Win" : match.home_score < match.away_score ? "Loss" : "Draw"}
                     mvp={match.mvp_name || "-"}
@@ -1400,7 +1400,7 @@ function EditableMatchesTable({
             <tr key={match.id}>
               <td>{formatDisplayDate(match.match_date)}</td>
               <td>{match.match_time ? match.match_time.slice(0, 5) : "-"}</td>
-              <td>{match.home_team?.name || "Magic Initiative Rwanda"}</td>
+              <td>{match.home_team?.name || "Magic Basketball Initiatives"}</td>
               <td>{match.opponent_name || "-"}</td>
               <td>{match.home_score} - {match.away_score}</td>
               <td>{match.status}</td>

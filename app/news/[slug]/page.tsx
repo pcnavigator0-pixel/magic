@@ -37,7 +37,7 @@ export default async function NewsArticlePage({
           <header className="article-header">
             <span>{post.category}</span>
             <h1>{post.title}</h1>
-            <div className="article-meta">{formatDisplayDate(post.published_at)} - Magic Initiative Rwanda</div>
+            <div className="article-meta">{formatDisplayDate(post.published_at)} - Magic Basketball Initiatives</div>
             {post.excerpt && <p>{post.excerpt}</p>}
           </header>
 

@@ -112,10 +112,10 @@ export function SiteHeader() {
   return (
     <>
       <header id="mainHeader" className={isScrolled ? "scrolled" : ""}>
-        <Link href="/" className="logo-container" aria-label="Magic Initiative Rwanda home">
+        <Link href="/" className="logo-container" aria-label="Magic Basketball Initiatives home">
           <div className="logo-badge">
-            <span className="ball">BB</span>
-            <span className="title">Magic Initiative Rwanda</span>
+            <span className="ball">MBI</span>
+            <span className="title">Magic Basketball Initiatives</span>
           </div>
         </Link>
 
@@ -201,7 +201,7 @@ export function SiteHeader() {
             ) : (
               <div className="drawer-search">
                 <label>
-                  <span>Search MAGIC Initiative Rwanda</span>
+                  <span>Search Magic Basketball Initiatives</span>
                   <input
                     autoFocus
                     type="search"

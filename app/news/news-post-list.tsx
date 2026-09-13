@@ -26,7 +26,7 @@ export function NewsPostList({ posts }: NewsPostListProps) {
               <span>{post.category}</span>
               <h2>{post.title}</h2>
               {post.excerpt && <p>{post.excerpt}</p>}
-              <small>{formatDisplayDate(post.published_at)} - Magic Initiative Rwanda</small>
+              <small>{formatDisplayDate(post.published_at)} - Magic Basketball Initiatives</small>
             </div>
           </Link>
         </article>

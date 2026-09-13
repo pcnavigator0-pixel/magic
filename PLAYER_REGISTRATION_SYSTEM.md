@@ -1,4 +1,4 @@
-# 🏀 Magic Initiative Rwanda Player Registration System
+# 🏀 Magic Basketball Initiatives Player Registration System
 
 ## System Overview
 
@@ -288,7 +288,7 @@ const [newPlayer] = await insertPlayer({
 ### Scenario 1: New Season Roster
 
 ```
-1. Coach opens Magic Initiative Rwanda admin dashboard
+1. Coach opens Magic Basketball Initiatives admin dashboard
 2. Coach → Players panel → Add Player
 3. Enters 15 players for new season
 4. System generates 15 unique codes

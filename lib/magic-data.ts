@@ -379,7 +379,7 @@ export function buildStandings(matches: Match[]) {
   matches
     .filter((match) => match.status === "final")
     .forEach((match) => {
-      const magic = ensure("Magic Initiative Rwanda");
+      const magic = ensure("Magic Basketball Initiatives");
       const opponent = match.opponent_name ? ensure(match.opponent_name) : null;
 
       magic.played += 1;

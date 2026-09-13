@@ -6,7 +6,7 @@ import { getMagicData, type Match, type Player } from "@/lib/magic-data";
 type MatchFilter = "all" | Match["status"];
 type SortMode = "newest" | "oldest" | "score";
 
-const DEFAULT_HOME_TEAM = "Magic Initiative Rwanda";
+const DEFAULT_HOME_TEAM = "Magic Basketball Initiatives";
 
 export function MatchesBoard({ matches: initialMatches, players }: { matches: Match[]; players: Player[] }) {
   const [matches, setMatches] = useState(initialMatches);
@@ -97,7 +97,7 @@ export function MatchesBoard({ matches: initialMatches, players }: { matches: Ma
       <section className={`matches-hero${featuredLiveMatch ? "" : " no-live-widget"}`} aria-labelledby="matches-title">
         <div className="matches-hero-copy">
           <h1 id="matches-title">Matches</h1>
-          <p>Stay updated with all Magic Initiative Rwanda matches, live scores, results and more.</p>
+          <p>Stay updated with all Magic Basketball Initiatives matches, live scores, results and more.</p>
 
           <div className="matches-tabs" role="tablist" aria-label="Match status">
             {[

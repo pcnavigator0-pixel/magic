@@ -10,7 +10,7 @@ export default async function RosterPage() {
   return (
     <PublicPageShell
       eyebrow="Roster"
-      title="Magic Initiative Rwanda players"
+      title="Magic Basketball Initiatives players"
       description="Meet the full team roster and follow player updates as the squad grows."
     >
       <RosterPlayerList players={data.players} />

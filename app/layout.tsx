@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Magic Team Championship - Magic Initiative Rwanda",
-  description: "Magic Initiative Rwanda basketball championship landing page with dynamic Supabase content.",
+  title: "Magic Team Championship - Magic Basketball Initiatives",
+  description: "Magic Basketball Initiatives basketball championship landing page with dynamic Supabase content.",
 };
 
 export const viewport: Viewport = {

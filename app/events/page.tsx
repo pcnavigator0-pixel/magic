@@ -11,7 +11,7 @@ export default async function EventsPage() {
     <PublicPageShell
       eyebrow="Events"
       title="Upcoming club events"
-      description="Find and join Magic Initiative Rwanda events, tournaments, camps, and community activities."
+      description="Find and join Magic Basketball Initiatives events, tournaments, camps, and community activities."
     >
       {events.length > 0 ? <EventList events={events} /> : <p className="public-empty">No events have been published yet.</p>}
     </PublicPageShell>

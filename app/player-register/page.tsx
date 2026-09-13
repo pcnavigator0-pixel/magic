@@ -133,12 +133,12 @@ export default function PlayerRegisterPage() {
 
   return (
     <main className={styles.page}>
-      <Link href="/" className={styles.logo} aria-label="Magic Initiative Rwanda home">
+      <Link href="/" className={styles.logo} aria-label="Magic Basketball Initiatives home">
         <span className={styles.ball}>🏀</span>
-        <span className={styles.title}>Magic Initiative Rwanda</span>
+        <span className={styles.title}>Magic Basketball Initiatives</span>
       </Link>
 
-      <section className={styles.card} aria-label="Magic Initiative Rwanda player registration">
+      <section className={styles.card} aria-label="Magic Basketball Initiatives player registration">
         {step === "code" && (
           <>
             <h1 className={styles.heading}>Player Registration</h1>

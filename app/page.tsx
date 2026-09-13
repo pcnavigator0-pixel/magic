@@ -170,7 +170,7 @@ export default function Home() {
               key={match.id}
               date={formatDisplayDate(match.match_date)}
               score={`${match.home_score} - ${match.away_score}`}
-              teams={[match.home_team?.name || "Magic Initiative Rwanda", match.opponent_name].filter(Boolean).join(" - ")}
+              teams={[match.home_team?.name || "Magic Basketball Initiatives", match.opponent_name].filter(Boolean).join(" - ")}
               league={match.league}
               location={match.venue}
               left="#E64A19"
@@ -201,7 +201,7 @@ export default function Home() {
               <span className="badge-category">{featuredNews.category}</span>
               <h2>{featuredNews.title}</h2>
               {featuredNews.excerpt && <p>{featuredNews.excerpt}</p>}
-              <div className="article-meta-footer">{formatDisplayDate(featuredNews.published_at)} • Magic Initiative Rwanda</div>
+              <div className="article-meta-footer">{formatDisplayDate(featuredNews.published_at)} • Magic Basketball Initiatives</div>
             </div>
           </Link>
 
@@ -339,7 +339,7 @@ export default function Home() {
           <div className="footer-brand">
             <div className="logo-badge">
               <span className="ball">🏀</span>
-              <span className="title">Magic Initiative Rwanda</span>
+              <span className="title">Magic Basketball Initiatives</span>
             </div>
             <p>Basketball stories, match scores, standings, and team updates for fans who follow every possession.</p>
             <div className="footer-socials" aria-label="Social links">
@@ -378,7 +378,7 @@ export default function Home() {
         </div>
 
         <div className="footer-bottom">
-          <span>© 2026 Magic Initiative Rwanda. All rights reserved.</span>
+          <span>© 2026 Magic Basketball Initiatives. All rights reserved.</span>
           <div>
             <a href="#privacy">Privacy Policy</a>
             <a href="#terms">Terms</a>
@@ -507,7 +507,7 @@ function NewsCard({ image, title, category, date, slug }: { image: string | null
       {image && <NewsImageCarousel imageValue={image} alt={`${title} Feature Image`} autoAdvanceMs={3400} />}
       <span className="section-label news-card-label">{category}</span>
       <h3>{title}</h3>
-      <div className="news-footer-meta">{date} • Magic Initiative Rwanda</div>
+      <div className="news-footer-meta">{date} • Magic Basketball Initiatives</div>
     </Link>
   );
 }

@@ -20,7 +20,7 @@ import styles from "./match-editor.module.css";
 type MatchMode = "final" | "scheduled" | "live";
 type ClockStatus = NonNullable<Match["clock_status"]>;
 
-const defaultHomeTeamName = "Magic Initiative Rwanda";
+const defaultHomeTeamName = "Magic Basketball Initiatives";
 
 export default function NewMatchPage() {
   const [matches, setMatches] = useState<Match[]>([]);

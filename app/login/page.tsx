@@ -56,13 +56,13 @@ export default function LoginPage() {
 
   return (
     <main className={styles.page}>
-      <Link href="/" className={styles.logo} aria-label="Magic Initiative Rwanda home">
-        <span className={styles.ball}>BB</span>
-        <span className={styles.title}>Magic Initiative Rwanda</span>
+      <Link href="/" className={styles.logo} aria-label="Magic Basketball Initiatives home">
+        <span className={styles.ball}>MBI</span>
+        <span className={styles.title}>Magic Basketball Initiatives</span>
       </Link>
 
-      <section className={styles.card} aria-label="Magic Initiative Rwanda portal login">
-        <h1 className={styles.heading}>Magic Initiative Rwanda Portal</h1>
+      <section className={styles.card} aria-label="Magic Basketball Initiatives portal login">
+        <h1 className={styles.heading}>Magic Basketball Initiatives Portal</h1>
         <p className={styles.subheading}>
           Sign in once and your role sends you to the correct dashboard.
         </p>

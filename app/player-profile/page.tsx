@@ -65,9 +65,9 @@ export default function PlayerProfilePage() {
   if (loading) {
     return (
       <main className={pageClassName}>
-        <Link href="/" className={authStyles.logo} aria-label="Magic Initiative Rwanda home">
+        <Link href="/" className={authStyles.logo} aria-label="Magic Basketball Initiatives home">
           <span className={authStyles.ball}>🏀</span>
-          <span className={authStyles.title}>Magic Initiative Rwanda</span>
+          <span className={authStyles.title}>Magic Basketball Initiatives</span>
         </Link>
         <section className={`${authStyles.card} ${styles.profileCard}`}>
           <p style={{ textAlign: "center", color: "#a0aab2" }}>Loading profile...</p>
@@ -79,9 +79,9 @@ export default function PlayerProfilePage() {
   if (error) {
     return (
       <main className={pageClassName}>
-        <Link href="/" className={authStyles.logo} aria-label="Magic Initiative Rwanda home">
+        <Link href="/" className={authStyles.logo} aria-label="Magic Basketball Initiatives home">
           <span className={authStyles.ball}>🏀</span>
-          <span className={authStyles.title}>Magic Initiative Rwanda</span>
+          <span className={authStyles.title}>Magic Basketball Initiatives</span>
         </Link>
         <section className={`${authStyles.card} ${styles.profileCard}`}>
           <p style={{ color: "#e64a19", textAlign: "center" }}>⚠️ {error}</p>
@@ -96,9 +96,9 @@ export default function PlayerProfilePage() {
   if (!profile) {
     return (
       <main className={pageClassName}>
-        <Link href="/" className={authStyles.logo} aria-label="Magic Initiative Rwanda home">
+        <Link href="/" className={authStyles.logo} aria-label="Magic Basketball Initiatives home">
           <span className={authStyles.ball}>🏀</span>
-          <span className={authStyles.title}>Magic Initiative Rwanda</span>
+          <span className={authStyles.title}>Magic Basketball Initiatives</span>
         </Link>
         <section className={`${authStyles.card} ${styles.profileCard}`}>
           <p style={{ textAlign: "center", color: "#a0aab2" }}>No profile data available</p>
@@ -115,9 +115,9 @@ export default function PlayerProfilePage() {
 
   return (
     <main className={pageClassName}>
-      <Link href="/" className={authStyles.logo} aria-label="Magic Initiative Rwanda home">
+      <Link href="/" className={authStyles.logo} aria-label="Magic Basketball Initiatives home">
         <span className={authStyles.ball}>🏀</span>
-        <span className={authStyles.title}>Magic Initiative Rwanda</span>
+        <span className={authStyles.title}>Magic Basketball Initiatives</span>
       </Link>
 
       <section className={`${authStyles.card} ${styles.profileCard}`}>

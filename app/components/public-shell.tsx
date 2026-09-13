@@ -8,8 +8,8 @@ export function PublicFooter() {
       <div className="footer-top">
         <div className="footer-brand">
           <div className="logo-badge">
-            <span className="ball">BB</span>
-            <span className="title">Magic Initiative Rwanda</span>
+            <span className="ball">MBI</span>
+            <span className="title">Magic Basketball Initiatives</span>
           </div>
           <p>Basketball stories, match scores, standings, and team updates for fans who follow every possession.</p>
         </div>

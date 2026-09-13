@@ -607,7 +607,7 @@ export function NewsEditor({ postId }: NewsEditorProps) {
               {form.image_url ? (
                 <img className={styles.previewCover} src={form.image_url} alt={form.title || "News cover"} />
               ) : (
-                <div className={styles.previewPlaceholder}>Magic Initiative Rwanda</div>
+                <div className={styles.previewPlaceholder}>Magic Basketball Initiatives</div>
               )}
               <ArticleBody blocks={previewBlocks} fallbackText={form.excerpt} matches={availableMatches} />
             </article>

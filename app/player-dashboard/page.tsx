@@ -100,8 +100,8 @@ export default function PlayerDashboardPage() {
     <main className={styles.page}>
       <header className={styles.navbar}>
         <div className={styles.logoBox}>
-          <span className={styles.logoTop}>BB</span>
-          <span className={styles.logoBottom}>Magic Initiative Rwanda</span>
+          <span className={styles.logoTop}>MBI</span>
+          <span className={styles.logoBottom}>Magic Basketball Initiatives</span>
         </div>
         <div className={styles.navActions}>
           <Link href="/" className={styles.btnOutline}>WEBSITE</Link>
@@ -208,7 +208,7 @@ export default function PlayerDashboardPage() {
                   <span className={styles.cardTitle}>SCHEDULE</span>
                   <h3>Upcoming team items</h3>
                 </div>
-                <span className={styles.badgeOrange}>Magic Initiative Rwanda</span>
+                <span className={styles.badgeOrange}>Magic Basketball Initiatives</span>
               </div>
               <div className={styles.scheduleList}>
                 {data.events.slice(0, 5).map((event) => (
