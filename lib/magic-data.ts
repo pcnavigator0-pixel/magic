@@ -521,6 +521,18 @@ export async function updateNewsPost(id: string, payload: Omit<NewsPost, "id">, 
   }, accessToken);
 }
 
+export async function updateNewsPostLinks(
+  id: string,
+  payload: Pick<NewsPost, "previous_news_id" | "next_news_id">,
+  accessToken?: string,
+) {
+  return restFetch<NewsPost[]>(`news_posts?id=eq.${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify(payload),
+  }, accessToken);
+}
+
 export async function updateShopProduct(id: string, payload: Omit<ShopProduct, "id">, accessToken?: string) {
   const updatedRows = await restFetch<ShopProduct[]>(`shop_products?id=eq.${encodeURIComponent(id)}`, {
     method: "PATCH",

@@ -10,6 +10,7 @@ import {
   getNewsPostsForEditor,
   insertNewsPost,
   updateNewsPost,
+  updateNewsPostLinks,
   type ArticleBlock,
   type NewsPost,
 } from "@/lib/magic-data";
@@ -217,6 +218,9 @@ export function NewsEditor({ postId }: NewsEditorProps) {
         published_at: publishedAt || new Date().toISOString(),
         is_published: form.is_published,
       };
+      const oldPost = isEditing && postId
+        ? await getNewsPostById(postId, session.access_token)
+        : null;
 
       const saved = isEditing && postId
         ? await updateNewsPost(postId, payload, session.access_token)
@@ -224,6 +228,34 @@ export function NewsEditor({ postId }: NewsEditorProps) {
       const savedPost = saved?.[0];
 
       if (savedPost) {
+        const currentId = savedPost.id;
+        const previousStory = form.previous_news_id
+          ? await getNewsPostById(form.previous_news_id, session.access_token)
+          : null;
+        const nextStory = form.next_news_id
+          ? await getNewsPostById(form.next_news_id, session.access_token)
+          : null;
+
+        if (previousStory && previousStory.next_news_id !== currentId) {
+          await updateNewsPostLinks(previousStory.id, { next_news_id: currentId }, session.access_token);
+        }
+        if (nextStory && nextStory.previous_news_id !== currentId) {
+          await updateNewsPostLinks(nextStory.id, { previous_news_id: currentId }, session.access_token);
+        }
+
+        if (oldPost?.previous_news_id && oldPost.previous_news_id !== form.previous_news_id) {
+          const oldPreviousStory = await getNewsPostById(oldPost.previous_news_id, session.access_token);
+          if (oldPreviousStory?.next_news_id === currentId) {
+            await updateNewsPostLinks(oldPreviousStory.id, { next_news_id: null }, session.access_token);
+          }
+        }
+        if (oldPost?.next_news_id && oldPost.next_news_id !== form.next_news_id) {
+          const oldNextStory = await getNewsPostById(oldPost.next_news_id, session.access_token);
+          if (oldNextStory?.previous_news_id === currentId) {
+            await updateNewsPostLinks(oldNextStory.id, { previous_news_id: null }, session.access_token);
+          }
+        }
+
         window.location.href = `/portal/news/${savedPost.id}/edit`;
         return;
       }
