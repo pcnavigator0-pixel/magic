@@ -96,6 +96,7 @@ export type ArticleBlock =
       size?: "small" | "medium" | "large";
       clear?: boolean;
     }
+  | { type: "list"; ordered: boolean; items: string[] }
   | { type: "image"; url: string; align: "left" | "right" | "full"; width?: "small" | "medium" | "large"; caption: string | null };
 
 export type CoachProfile = {

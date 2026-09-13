@@ -19,6 +19,13 @@ export function ArticleBody({ blocks, fallbackText, className }: ArticleBodyProp
           return <p className={`article-paragraph-align-${align} article-paragraph-size-${size} article-paragraph-weight-${weight} ${block.clear ? "article-paragraph-clear" : ""}`} key={`paragraph-${index}`}>{block.text}</p>;
         }
 
+        if (block.type === "list") {
+          const ListTag = block.ordered ? "ol" : "ul";
+          return <ListTag className="article-list-block" key={`list-${index}`}>
+            {block.items.map((item, itemIndex) => <li key={`list-item-${itemIndex}`}>{item}</li>)}
+          </ListTag>;
+        }
+
         const align = block.align === "right" || block.align === "full" ? block.align : "left";
         const width = block.width === "small" || block.width === "large" ? block.width : "medium";
 
@@ -50,6 +57,13 @@ export function normalizeArticleBlocks(
             size: block.size === "small" || block.size === "large" ? block.size : "medium" as const,
             clear: block.clear === true,
           } : null;
+        }
+
+        if (block?.type === "list") {
+          const items = Array.isArray(block.items)
+            ? block.items.map((item) => String(item || "").trim()).filter(Boolean)
+            : [];
+          return items.length ? { type: "list" as const, ordered: block.ordered === true, items } : null;
         }
 
         if (block?.type === "image") {

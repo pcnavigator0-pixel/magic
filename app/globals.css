@@ -2179,6 +2179,17 @@ body.modal-open {
   clear: both;
 }
 
+.article-list-block {
+  clear: both;
+  margin: 0 0 24px;
+  padding-left: 28px;
+}
+
+.article-list-block li {
+  margin-bottom: 8px;
+  padding-left: 4px;
+}
+
 .article-image-block {
   width: 45%;
   max-width: 360px;

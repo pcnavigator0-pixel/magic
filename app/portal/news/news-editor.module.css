@@ -315,6 +315,11 @@
   accent-color: #e64a19;
 }
 
+.listEditor {
+  display: grid;
+  gap: 14px;
+}
+
 .preview {
   position: sticky;
   top: 24px;

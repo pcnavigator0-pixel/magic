@@ -136,7 +136,9 @@ export function NewsEditor({ postId }: NewsEditorProps) {
       ...current,
       type === "paragraph"
         ? { type: "paragraph", text: "", align: "left", weight: "normal", size: "medium" }
-        : { type: "image", url: "", align: "left", width: "medium", caption: null },
+        : type === "list"
+          ? { type: "list", ordered: false, items: [""] }
+          : { type: "image", url: "", align: "left", width: "medium", caption: null },
     ]);
   }
 
@@ -352,12 +354,15 @@ export function NewsEditor({ postId }: NewsEditorProps) {
               <button className={styles.secondaryButton} type="button" onClick={() => addBlock("image")}>
                 + Add image
               </button>
+              <button className={styles.secondaryButton} type="button" onClick={() => addBlock("list")}>
+                + Add list
+              </button>
             </div>
 
             {blocks.map((block, index) => (
               <div className={styles.block} key={`${block.type}-${index}`}>
                 <div className={styles.blockHead}>
-                  <span className={styles.blockLabel}>{block.type === "paragraph" ? "Paragraph" : "Image"} {index + 1}</span>
+                  <span className={styles.blockLabel}>{block.type === "paragraph" ? "Paragraph" : block.type === "image" ? "Image" : "List"} {index + 1}</span>
                   <div className={styles.blockActions}>
                     <button className={styles.iconButton} type="button" aria-label="Move block up" onClick={() => moveBlock(index, -1)}>
                       <i className="fa-solid fa-arrow-up" aria-hidden="true" />
@@ -403,6 +408,20 @@ export function NewsEditor({ postId }: NewsEditorProps) {
                       onChange={(event) => updateBlock(index, { text: event.target.value })}
                     />
                   </>
+                ) : block.type === "list" ? (
+                  <div className={styles.listEditor}>
+                    <label className={styles.fullField}>
+                      <span>List style</span>
+                      <select value={block.ordered ? "ordered" : "unordered"} onChange={(event) => updateBlock(index, { ordered: event.target.value === "ordered" })}>
+                        <option value="unordered">Unordered — bullet points</option>
+                        <option value="ordered">Ordered — steps</option>
+                      </select>
+                    </label>
+                    <label className={styles.fullField}>
+                      <span>One item per line</span>
+                      <textarea rows={5} value={block.items.join("\n")} onChange={(event) => updateBlock(index, { items: event.target.value.split("\n") })} />
+                    </label>
+                  </div>
                 ) : (
                   <div className={styles.imageGrid}>
                     {block.url ? <img className={styles.thumb} src={block.url} alt={block.caption || ""} /> : <div className={styles.thumb} />}
@@ -462,6 +481,9 @@ export function NewsEditor({ postId }: NewsEditorProps) {
               </button>
               <button className={styles.secondaryButton} type="button" onClick={() => addBlock("image")}>
                 + Add image
+              </button>
+              <button className={styles.secondaryButton} type="button" onClick={() => addBlock("list")}>
+                + Add list
               </button>
             </div>
 
