@@ -2175,6 +2175,10 @@ body.modal-open {
   font-weight: 800;
 }
 
+.article-paragraph-clear {
+  clear: both;
+}
+
 .article-image-block {
   width: 45%;
   max-width: 360px;

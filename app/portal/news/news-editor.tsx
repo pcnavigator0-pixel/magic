@@ -392,6 +392,10 @@ export function NewsEditor({ postId }: NewsEditorProps) {
                         <input type="checkbox" checked={block.weight === "bold"} onChange={(event) => updateBlock(index, { weight: event.target.checked ? "bold" : "normal" })} />
                         Bold
                       </label>
+                      <label className={styles.boldToggle}>
+                        <input type="checkbox" checked={block.clear === true} onChange={(event) => updateBlock(index, { clear: event.target.checked })} />
+                        Start below images
+                      </label>
                     </div>
                     <textarea
                       rows={5}

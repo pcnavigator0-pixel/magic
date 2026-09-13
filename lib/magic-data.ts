@@ -94,6 +94,7 @@ export type ArticleBlock =
       align?: "left" | "center" | "right";
       weight?: "normal" | "bold";
       size?: "small" | "medium" | "large";
+      clear?: boolean;
     }
   | { type: "image"; url: string; align: "left" | "right" | "full"; width?: "small" | "medium" | "large"; caption: string | null };
 

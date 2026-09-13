@@ -16,7 +16,7 @@ export function ArticleBody({ blocks, fallbackText, className }: ArticleBodyProp
           const align = block.align === "center" || block.align === "right" ? block.align : "left";
           const size = block.size === "small" || block.size === "large" ? block.size : "medium";
           const weight = block.weight === "bold" ? "bold" : "normal";
-          return <p className={`article-paragraph-align-${align} article-paragraph-size-${size} article-paragraph-weight-${weight}`} key={`paragraph-${index}`}>{block.text}</p>;
+          return <p className={`article-paragraph-align-${align} article-paragraph-size-${size} article-paragraph-weight-${weight} ${block.clear ? "article-paragraph-clear" : ""}`} key={`paragraph-${index}`}>{block.text}</p>;
         }
 
         const align = block.align === "right" || block.align === "full" ? block.align : "left";
@@ -48,6 +48,7 @@ export function normalizeArticleBlocks(
             align: block.align === "center" || block.align === "right" ? block.align : "left" as const,
             weight: block.weight === "bold" ? "bold" as const : "normal" as const,
             size: block.size === "small" || block.size === "large" ? block.size : "medium" as const,
+            clear: block.clear === true,
           } : null;
         }
 
