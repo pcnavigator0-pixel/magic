@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { siteName, siteUrl } from "@/lib/site-config";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,8 +14,25 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Magic Team Championship - Magic Basketball Initiatives",
-  description: "Magic Basketball Initiatives basketball championship landing page with dynamic Supabase content.",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: `${siteName} - Magic Team Championship`,
+    template: `%s | ${siteName}`,
+  },
+  description: `${siteName} basketball championship landing page with match scores, news, standings, events, roster, and community updates.`,
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    url: siteUrl,
+    siteName,
+    title: `${siteName} - Magic Team Championship`,
+    description: `${siteName} basketball championship landing page with match scores, news, standings, events, roster, and community updates.`,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${siteName} - Magic Team Championship`,
+    description: `${siteName} basketball championship updates and match coverage.`,
+  },
 };
 
 export const viewport: Viewport = {
