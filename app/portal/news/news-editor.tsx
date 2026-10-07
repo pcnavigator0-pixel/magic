@@ -42,7 +42,7 @@ const emptyForm: FormState = {
   image_url: "",
   previous_news_id: "",
   next_news_id: "",
-  is_published: true,
+  is_published: false,
 };
 
 export function NewsEditor({ postId }: NewsEditorProps) {
@@ -57,7 +57,24 @@ export function NewsEditor({ postId }: NewsEditorProps) {
   const [status, setStatus] = useState("Checking coach access...");
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const isEditing = Boolean(postId);
+
+  function applyPost(post: NewsPost) {
+    setForm({
+      title: post.title,
+      slug: post.slug,
+      category: post.category,
+      excerpt: post.excerpt || "",
+      image_url: post.image_url || "",
+      previous_news_id: post.previous_news_id || "",
+      next_news_id: post.next_news_id || "",
+      is_published: post.is_published,
+    });
+    setBlocks(normalizeArticleBlocks(post.content, post.excerpt));
+    setPublishedAt(post.published_at);
+    setHasUnsavedChanges(false);
+  }
 
   useEffect(() => {
     let active = true;
@@ -112,26 +129,13 @@ export function NewsEditor({ postId }: NewsEditorProps) {
 
   const previewBlocks = useMemo(() => normalizeArticleBlocks(blocks, form.excerpt), [blocks, form.excerpt]);
 
-  function applyPost(post: NewsPost) {
-    setForm({
-      title: post.title,
-      slug: post.slug,
-      category: post.category,
-      excerpt: post.excerpt || "",
-      image_url: post.image_url || "",
-      previous_news_id: post.previous_news_id || "",
-      next_news_id: post.next_news_id || "",
-      is_published: post.is_published,
-    });
-    setBlocks(normalizeArticleBlocks(post.content, post.excerpt));
-    setPublishedAt(post.published_at);
-  }
-
   function updateForm(key: keyof FormState, value: string | boolean) {
+    setHasUnsavedChanges(true);
     setForm((current) => ({ ...current, [key]: value }));
   }
 
   function handleTitleChange(value: string) {
+    setHasUnsavedChanges(true);
     setForm((current) => ({
       ...current,
       title: value,
@@ -140,6 +144,7 @@ export function NewsEditor({ postId }: NewsEditorProps) {
   }
 
   function addBlock(type: ArticleBlock["type"]) {
+    setHasUnsavedChanges(true);
     setBlocks((current) => [
       ...current,
       type === "paragraph"
@@ -151,16 +156,10 @@ export function NewsEditor({ postId }: NewsEditorProps) {
   }
 
   function updateBlock(index: number, patch: Partial<ArticleBlock>) {
+    setHasUnsavedChanges(true);
     setBlocks((current) => current.map((block, blockIndex) => (
       blockIndex === index ? ({ ...block, ...patch } as ArticleBlock) : block
     )));
-  }
-
-  function addRelatedMatch(index: number, matchId: string) {
-    if (!matchId) return;
-    const block = blocks[index];
-    if (block?.type !== "paragraph" || block.related_match_ids?.includes(matchId)) return;
-    updateBlock(index, { related_match_ids: [...(block.related_match_ids || []), matchId] });
   }
 
   function removeRelatedMatch(index: number, matchId: string) {
@@ -218,6 +217,7 @@ export function NewsEditor({ postId }: NewsEditorProps) {
   }
 
   function moveBlock(index: number, direction: -1 | 1) {
+    setHasUnsavedChanges(true);
     setBlocks((current) => {
       const nextIndex = index + direction;
       if (nextIndex < 0 || nextIndex >= current.length) return current;
@@ -228,6 +228,7 @@ export function NewsEditor({ postId }: NewsEditorProps) {
   }
 
   function removeBlock(index: number) {
+    setHasUnsavedChanges(true);
     setBlocks((current) => current.filter((_, blockIndex) => blockIndex !== index));
   }
 
@@ -257,7 +258,7 @@ export function NewsEditor({ postId }: NewsEditorProps) {
     updateBlock(index, { url } as Partial<ArticleBlock>);
   }
 
-  async function savePost() {
+  async function savePost(publishOverride?: boolean) {
     if (!session || isSaving) return;
 
     const slug = createSlug(form.slug || form.title);
@@ -287,7 +288,7 @@ export function NewsEditor({ postId }: NewsEditorProps) {
         next_news_id: form.next_news_id || null,
         content: cleanedBlocks,
         published_at: publishedAt || new Date().toISOString(),
-        is_published: form.is_published,
+        is_published: publishOverride ?? form.is_published,
       };
       const oldPost = isEditing && postId
         ? await getNewsPostById(postId, session.access_token)
@@ -299,6 +300,7 @@ export function NewsEditor({ postId }: NewsEditorProps) {
       const savedPost = saved?.[0];
 
       if (savedPost) {
+        setHasUnsavedChanges(false);
         const currentId = savedPost.id;
         const previousStory = form.previous_news_id
           ? await getNewsPostById(form.previous_news_id, session.access_token)
@@ -332,12 +334,25 @@ export function NewsEditor({ postId }: NewsEditorProps) {
       }
 
       setStatus("Saved.");
+      setHasUnsavedChanges(false);
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Unable to save this story.");
     } finally {
       setIsSaving(false);
     }
   }
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) return undefined;
+
+    function warnBeforeLeaving(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("beforeunload", warnBeforeLeaving);
+    return () => window.removeEventListener("beforeunload", warnBeforeLeaving);
+  }, [hasUnsavedChanges]);
 
   return (
     <main className={styles.page}>
@@ -357,8 +372,57 @@ export function NewsEditor({ postId }: NewsEditorProps) {
         {status && <p className={styles.status}>{status}</p>}
         {error && <p className={`${styles.status} ${styles.error}`}>{error}</p>}
 
+        <nav className={styles.ribbon} aria-label="Story editing toolbar">
+          <div className={styles.ribbonGroup}>
+            <span className={styles.ribbonLabel}>Insert</span>
+            <div className={styles.ribbonButtons}>
+              <button className={styles.ribbonButton} type="button" onClick={() => addBlock("paragraph")} title="Add a paragraph">
+                <i className="fa-solid fa-paragraph" aria-hidden="true" />
+                <span>Paragraph</span>
+              </button>
+              <button className={styles.ribbonButton} type="button" onClick={() => addBlock("image")} title="Add an image">
+                <i className="fa-regular fa-image" aria-hidden="true" />
+                <span>Picture</span>
+              </button>
+              <button className={styles.ribbonButton} type="button" onClick={() => addBlock("list")} title="Add a list">
+                <i className="fa-solid fa-list" aria-hidden="true" />
+                <span>List</span>
+              </button>
+            </div>
+          </div>
+          <div className={styles.ribbonGroup}>
+            <span className={styles.ribbonLabel}>Story</span>
+            <div className={styles.ribbonButtons}>
+              <button className={styles.ribbonButton} type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} title="Edit story details">
+                <i className="fa-solid fa-heading" aria-hidden="true" />
+                <span>Details</span>
+              </button>
+              <button className={styles.ribbonButton} type="button" onClick={() => document.querySelector(".news-editor-body")?.scrollIntoView({ behavior: "smooth" })} title="Jump to article body">
+                <i className="fa-solid fa-align-left" aria-hidden="true" />
+                <span>Body</span>
+              </button>
+            </div>
+          </div>
+          <div className={styles.ribbonGroup}>
+            <span className={styles.ribbonLabel}>Publish</span>
+            <div className={styles.ribbonButtons}>
+              <button className={styles.ribbonButton} type="button" disabled={isSaving || !session} onClick={() => savePost(false)} title="Save without publishing">
+                <i className="fa-regular fa-floppy-disk" aria-hidden="true" />
+                <span>Save draft</span>
+              </button>
+              <button className={`${styles.ribbonButton} ${styles.ribbonPrimary}`} type="button" disabled={isSaving || !session} onClick={() => savePost(true)} title="Make this story public">
+                <i className="fa-solid fa-paper-plane" aria-hidden="true" />
+                <span>Publish</span>
+              </button>
+            </div>
+          </div>
+          <span className={styles.saveIndicator} aria-live="polite">
+            {isSaving ? "Saving…" : hasUnsavedChanges ? "Unsaved changes" : isEditing ? (form.is_published ? "Published" : "Draft saved") : "New draft"}
+          </span>
+        </nav>
+
         <div className={styles.layout}>
-          <section className={styles.panel} aria-label="News editor">
+          <section className={`${styles.panel} news-editor-body`} aria-label="News editor">
             <div className={styles.formGrid}>
               <label className={styles.field}>
                 <span>Title</span>
@@ -590,8 +654,11 @@ export function NewsEditor({ postId }: NewsEditorProps) {
 
             <div className={styles.actionBar}>
               <Link className={styles.secondaryButton} href="/coach-dashboard">Cancel</Link>
-              <button className={styles.primaryButton} type="button" disabled={isSaving || !session} onClick={savePost}>
-                {isSaving ? "Saving..." : isEditing ? "Update News" : "Publish News"}
+              <button className={styles.secondaryButton} type="button" disabled={isSaving || !session} onClick={() => savePost(false)}>
+                Save draft
+              </button>
+              <button className={styles.primaryButton} type="button" disabled={isSaving || !session} onClick={() => savePost(true)}>
+                {isSaving ? "Saving..." : isEditing && form.is_published ? "Update published story" : "Publish story"}
               </button>
             </div>
           </section>
