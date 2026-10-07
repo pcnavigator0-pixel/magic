@@ -2279,6 +2279,13 @@ body.modal-open {
   clear: both;
 }
 
+.article-body a:not(.article-match-link) {
+  color: #1769aa;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
 .article-match-link {
   display: inline-block;
   margin-left: 10px;

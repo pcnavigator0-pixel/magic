@@ -23,6 +23,40 @@ type NewsEditorProps = {
   postId?: string;
 };
 
+type RichTextSurfaceProps = {
+  html: string;
+  label?: string;
+  onChange: (html: string) => void;
+  onFocus: () => void;
+  register: (element: HTMLDivElement | null) => void;
+};
+
+function RichTextSurface({ html, label, onChange, onFocus, register }: RichTextSurfaceProps) {
+  const surfaceRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (surfaceRef.current && surfaceRef.current.innerHTML !== html) {
+      surfaceRef.current.innerHTML = html;
+    }
+  }, [html]);
+
+  return (
+    <div
+      className={styles.richTextSurface}
+      contentEditable
+      suppressContentEditableWarning
+      role="textbox"
+      aria-label={label}
+      ref={(element) => {
+        surfaceRef.current = element;
+        register(element);
+      }}
+      onFocus={onFocus}
+      onInput={(event) => onChange(event.currentTarget.innerHTML)}
+    />
+  );
+}
+
 type FormState = {
   title: string;
   slug: string;
@@ -190,12 +224,26 @@ export function NewsEditor({ postId }: NewsEditorProps) {
 
   function addLink() {
     const url = window.prompt("Enter the link URL", "https://");
-    if (url) runFormat("createLink", url);
+    if (!url) return;
+
+    const selectedText = window.getSelection()?.toString() || "";
+    const label = window.prompt("Text to show for this link. Keep the URL to show the full address, or type a label.", selectedText || url);
+    if (label === null) return;
+
+    runFormat("insertHTML", `<a href="${escapeHtmlAttribute(url)}">${escapeHtmlText(label || url)}</a>`);
   }
 
   function chooseTextColor() {
     const color = window.prompt("Enter a color name or hex value", "#e64a19");
     if (color) runFormat("foreColor", color);
+  }
+
+  function escapeHtmlAttribute(value: string) {
+    return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  function escapeHtmlText(value: string) {
+    return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
 
   function removeRelatedMatch(index: number, matchId: string) {
@@ -616,16 +664,12 @@ export function NewsEditor({ postId }: NewsEditorProps) {
                         })}
                       </div>
                     </div>
-                    <div
-                      className={styles.richTextSurface}
-                      contentEditable
-                      suppressContentEditableWarning
-                      role="textbox"
-                      aria-label={`Paragraph ${index + 1}`}
-                      ref={(element) => { editableRefs.current[`block:${index}`] = element; }}
+                    <RichTextSurface
+                      html={editorText(block.text)}
+                      label={`Paragraph ${index + 1}`}
+                      register={(element) => { editableRefs.current[`block:${index}`] = element; }}
                       onFocus={() => setActiveEditable(`block:${index}`)}
-                      onInput={(event) => updateRichText(index, event.currentTarget.innerHTML)}
-                      dangerouslySetInnerHTML={{ __html: editorText(block.text) }}
+                      onChange={(html) => updateRichText(index, html)}
                     />
                     <small className={styles.editorHint}>Press Enter for a new line. Select words and use the ribbon for formatting.</small>
                   </>
@@ -633,15 +677,12 @@ export function NewsEditor({ postId }: NewsEditorProps) {
                   <>
                     <label className={styles.fullField}>
                       <span>{block.type === "heading" ? "Heading text" : block.type === "pullquote" ? "Pull quote" : "Quote"}</span>
-                      <div
-                        className={styles.richTextSurface}
-                        contentEditable
-                        suppressContentEditableWarning
-                        role="textbox"
-                        ref={(element) => { editableRefs.current[`block:${index}`] = element; }}
+                      <RichTextSurface
+                        html={editorText(block.text)}
+                        label={`${block.type} ${index + 1}`}
+                        register={(element) => { editableRefs.current[`block:${index}`] = element; }}
                         onFocus={() => setActiveEditable(`block:${index}`)}
-                        onInput={(event) => updateRichText(index, event.currentTarget.innerHTML)}
-                        dangerouslySetInnerHTML={{ __html: editorText(block.text) }}
+                        onChange={(html) => updateRichText(index, html)}
                       />
                     </label>
                     {block.type === "heading" ? (
