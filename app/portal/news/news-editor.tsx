@@ -52,6 +52,8 @@ export function NewsEditor({ postId }: NewsEditorProps) {
   const [availableNews, setAvailableNews] = useState<NewsPost[]>([]);
   const [availableMatches, setAvailableMatches] = useState<Match[]>([]);
   const textareas = useRef<Record<string, HTMLTextAreaElement | null>>({});
+  const editableRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [activeEditable, setActiveEditable] = useState<string | null>(null);
   const [publishedAt, setPublishedAt] = useState<string | null>(null);
   const [slugTouched, setSlugTouched] = useState(Boolean(postId));
   const [status, setStatus] = useState("Checking coach access...");
@@ -148,10 +150,18 @@ export function NewsEditor({ postId }: NewsEditorProps) {
     setBlocks((current) => [
       ...current,
       type === "paragraph"
-        ? { type: "paragraph", text: "", align: "left", weight: "normal", size: "medium" }
-        : type === "list"
-          ? { type: "list", ordered: false, items: [{ text: "", related_match_ids: [] }] }
-          : { type: "image", url: "", align: "left", width: "medium", caption: null },
+        ? { type: "paragraph", text: "", align: "left", size: "medium" }
+        : type === "heading"
+          ? { type: "heading", text: "", level: 2 }
+          : type === "quote" || type === "pullquote"
+            ? { type, text: "", citation: null }
+            : type === "list"
+              ? { type: "list", ordered: false, items: [{ text: "", related_match_ids: [] }] }
+              : type === "table"
+                ? { type: "table", headers: ["Column 1", "Column 2"], rows: [["", ""]] }
+                : type === "embed"
+                  ? { type: "embed", url: "", provider: "youtube", caption: null }
+                  : { type: "image", url: "", align: "left", width: "medium", caption: null, crop: { zoom: 1, x: 50, y: 50 } },
     ]);
   }
 
@@ -160,6 +170,32 @@ export function NewsEditor({ postId }: NewsEditorProps) {
     setBlocks((current) => current.map((block, blockIndex) => (
       blockIndex === index ? ({ ...block, ...patch } as ArticleBlock) : block
     )));
+  }
+
+  function updateRichText(index: number, html: string) {
+    updateBlock(index, { text: html } as Partial<ArticleBlock>);
+  }
+
+  function runFormat(command: string, value?: string) {
+    if (!activeEditable) return;
+    editableRefs.current[activeEditable]?.focus();
+    document.execCommand(command, false, value);
+    const [kind, indexValue] = activeEditable.split(":");
+    if (kind === "block") {
+      const index = Number(indexValue);
+      const element = editableRefs.current[activeEditable];
+      if (element) updateRichText(index, element.innerHTML);
+    }
+  }
+
+  function addLink() {
+    const url = window.prompt("Enter the link URL", "https://");
+    if (url) runFormat("createLink", url);
+  }
+
+  function chooseTextColor() {
+    const color = window.prompt("Enter a color name or hex value", "#e64a19");
+    if (color) runFormat("foreColor", color);
   }
 
   function removeRelatedMatch(index: number, matchId: string) {
@@ -388,6 +424,36 @@ export function NewsEditor({ postId }: NewsEditorProps) {
                 <i className="fa-solid fa-list" aria-hidden="true" />
                 <span>List</span>
               </button>
+              <button className={styles.ribbonButton} type="button" onClick={() => addBlock("heading")} title="Add a heading">
+                <i className="fa-solid fa-heading" aria-hidden="true" />
+                <span>Heading</span>
+              </button>
+              <button className={styles.ribbonButton} type="button" onClick={() => addBlock("quote")} title="Add a quote">
+                <i className="fa-solid fa-quote-left" aria-hidden="true" />
+                <span>Quote</span>
+              </button>
+              <button className={styles.ribbonButton} type="button" onClick={() => addBlock("pullquote")} title="Add a pull quote">
+                <i className="fa-solid fa-quote-right" aria-hidden="true" />
+                <span>Pull quote</span>
+              </button>
+              <button className={styles.ribbonButton} type="button" onClick={() => addBlock("table")} title="Add a table">
+                <i className="fa-solid fa-table" aria-hidden="true" />
+                <span>Table</span>
+              </button>
+              <button className={styles.ribbonButton} type="button" onClick={() => addBlock("embed")} title="Embed video or social content">
+                <i className="fa-solid fa-film" aria-hidden="true" />
+                <span>Embed</span>
+              </button>
+            </div>
+          </div>
+          <div className={styles.ribbonGroup}>
+            <span className={styles.ribbonLabel}>Format selection</span>
+            <div className={styles.ribbonButtons}>
+              <button className={styles.ribbonButton} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runFormat("bold")} title="Bold selected text"><strong>B</strong><span>Bold</span></button>
+              <button className={styles.ribbonButton} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runFormat("italic")} title="Italicize selected text"><em>I</em><span>Italic</span></button>
+              <button className={styles.ribbonButton} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runFormat("underline")} title="Underline selected text"><u>U</u><span>Underline</span></button>
+              <button className={styles.ribbonButton} type="button" onMouseDown={(event) => event.preventDefault()} onClick={addLink} title="Add a hyperlink"><i className="fa-solid fa-link" aria-hidden="true" /><span>Link</span></button>
+              <button className={styles.ribbonButton} type="button" onMouseDown={(event) => event.preventDefault()} onClick={chooseTextColor} title="Change selected text color"><i className="fa-solid fa-palette" aria-hidden="true" /><span>Color</span></button>
             </div>
           </div>
           <div className={styles.ribbonGroup}>
@@ -495,7 +561,7 @@ export function NewsEditor({ postId }: NewsEditorProps) {
             {blocks.map((block, index) => (
               <div className={styles.block} key={`${block.type}-${index}`}>
                 <div className={styles.blockHead}>
-                  <span className={styles.blockLabel}>{block.type === "paragraph" ? "Paragraph" : block.type === "image" ? "Image" : "List"} {index + 1}</span>
+                  <span className={styles.blockLabel}>{block.type === "paragraph" ? "Paragraph" : block.type === "image" ? "Image" : block.type === "list" ? "List" : block.type === "heading" ? "Heading" : block.type === "quote" ? "Quote" : block.type === "pullquote" ? "Pull quote" : block.type === "table" ? "Table" : "Embed"} {index + 1}</span>
                   <div className={styles.blockActions}>
                     <button className={styles.iconButton} type="button" aria-label="Move block up" onClick={() => moveBlock(index, -1)}>
                       <i className="fa-solid fa-arrow-up" aria-hidden="true" />
@@ -550,13 +616,51 @@ export function NewsEditor({ postId }: NewsEditorProps) {
                         })}
                       </div>
                     </div>
-                    <textarea
-                      rows={5}
-                      value={editorText(block.text)}
-                      ref={(element) => { textareas.current[`paragraph-${index}`] = element; }}
-                      onChange={(event) => updateBlock(index, { text: storedText(event.target.value, block.related_match_ids || []) })}
+                    <div
+                      className={styles.richTextSurface}
+                      contentEditable
+                      suppressContentEditableWarning
+                      role="textbox"
+                      aria-label={`Paragraph ${index + 1}`}
+                      ref={(element) => { editableRefs.current[`block:${index}`] = element; }}
+                      onFocus={() => setActiveEditable(`block:${index}`)}
+                      onInput={(event) => updateRichText(index, event.currentTarget.innerHTML)}
+                      dangerouslySetInnerHTML={{ __html: editorText(block.text) }}
                     />
+                    <small className={styles.editorHint}>Press Enter for a new line. Select words and use the ribbon for formatting.</small>
                   </>
+                ) : block.type === "heading" || block.type === "quote" || block.type === "pullquote" ? (
+                  <>
+                    <label className={styles.fullField}>
+                      <span>{block.type === "heading" ? "Heading text" : block.type === "pullquote" ? "Pull quote" : "Quote"}</span>
+                      <div
+                        className={styles.richTextSurface}
+                        contentEditable
+                        suppressContentEditableWarning
+                        role="textbox"
+                        ref={(element) => { editableRefs.current[`block:${index}`] = element; }}
+                        onFocus={() => setActiveEditable(`block:${index}`)}
+                        onInput={(event) => updateRichText(index, event.currentTarget.innerHTML)}
+                        dangerouslySetInnerHTML={{ __html: editorText(block.text) }}
+                      />
+                    </label>
+                    {block.type === "heading" ? (
+                      <label className={styles.inlineField}><span>Level</span><select value={block.level} onChange={(event) => updateBlock(index, { level: Number(event.target.value) as 2 | 3 | 4 })}><option value="2">Main heading</option><option value="3">Subheading</option><option value="4">Small heading</option></select></label>
+                    ) : (
+                      <label className={styles.fullField}><span>Attribution (optional)</span><input value={block.citation || ""} onChange={(event) => updateBlock(index, { citation: event.target.value || null })} /></label>
+                    )}
+                  </>
+                ) : block.type === "table" ? (
+                  <div className={styles.tableEditor}>
+                    <div className={styles.tableToolbar}><span className={styles.blockLabel}>Table</span><button className={styles.secondaryButton} type="button" onClick={() => updateBlock(index, { headers: [...block.headers, `Column ${block.headers.length + 1}`], rows: block.rows.map((row) => [...row, ""]) })}>+ Column</button><button className={styles.secondaryButton} type="button" onClick={() => updateBlock(index, { rows: [...block.rows, block.headers.map(() => "")] })}>+ Row</button></div>
+                    <table className={styles.editTable}><thead><tr>{block.headers.map((header, headerIndex) => <th key={`edit-header-${headerIndex}`}><input value={header} onChange={(event) => updateBlock(index, { headers: block.headers.map((item, current) => current === headerIndex ? event.target.value : item) })} /></th>)}</tr></thead><tbody>{block.rows.map((row, rowIndex) => <tr key={`edit-row-${rowIndex}`}>{block.headers.map((_, cellIndex) => <td key={`edit-cell-${rowIndex}-${cellIndex}`}><input value={row[cellIndex] || ""} onChange={(event) => updateBlock(index, { rows: block.rows.map((currentRow, currentRowIndex) => currentRowIndex === rowIndex ? currentRow.map((cell, currentCellIndex) => currentCellIndex === cellIndex ? event.target.value : cell) : currentRow) })} /></td>)}</tr>)}</tbody></table>
+                  </div>
+                ) : block.type === "embed" ? (
+                  <div className={styles.embedEditor}>
+                    <label className={styles.fullField}><span>Embed URL</span><input placeholder="YouTube, Vimeo, or social post URL" value={block.url} onChange={(event) => updateBlock(index, { url: event.target.value })} /></label>
+                    <label className={styles.inlineField}><span>Provider</span><select value={block.provider} onChange={(event) => updateBlock(index, { provider: event.target.value as "youtube" | "vimeo" | "social" })}><option value="youtube">YouTube</option><option value="vimeo">Vimeo</option><option value="social">Social / external link</option></select></label>
+                    <label className={styles.fullField}><span>Caption (optional)</span><input value={block.caption || ""} onChange={(event) => updateBlock(index, { caption: event.target.value || null })} /></label>
+                  </div>
                 ) : block.type === "list" ? (
                   <div className={styles.listEditor}>
                     <label className={styles.fullField}>
@@ -587,7 +691,7 @@ export function NewsEditor({ postId }: NewsEditorProps) {
                       </div>;
                     })}
                   </div>
-                ) : (
+                ) : block.type === "image" ? (
                   <div className={styles.imageGrid}>
                     {block.url ? <img className={styles.thumb} src={block.url} alt={block.caption || ""} /> : <div className={styles.thumb} />}
                     <div>
@@ -611,6 +715,9 @@ export function NewsEditor({ postId }: NewsEditorProps) {
                           <option value="large">Large</option>
                         </select>
                       </label>
+                      <label className={styles.fullField}><span>Crop zoom</span><input type="range" min="1" max="2" step="0.05" value={block.crop?.zoom || 1} onChange={(event) => updateBlock(index, { crop: { zoom: Number(event.target.value), x: block.crop?.x || 50, y: block.crop?.y || 50 } })} /></label>
+                      <label className={styles.fullField}><span>Crop focus left / right</span><input type="range" min="0" max="100" value={block.crop?.x || 50} onChange={(event) => updateBlock(index, { crop: { zoom: block.crop?.zoom || 1, x: Number(event.target.value), y: block.crop?.y || 50 } })} /></label>
+                      <label className={styles.fullField}><span>Crop focus top / bottom</span><input type="range" min="0" max="100" value={block.crop?.y || 50} onChange={(event) => updateBlock(index, { crop: { zoom: block.crop?.zoom || 1, x: block.crop?.x || 50, y: Number(event.target.value) } })} /></label>
                       <div className={styles.alignRow} aria-label="Image alignment">
                         <button
                           className={`${styles.alignButton} ${block.align === "left" ? styles.alignButtonActive : ""}`}
@@ -636,7 +743,7 @@ export function NewsEditor({ postId }: NewsEditorProps) {
                       </div>
                     </div>
                   </div>
-                )}
+                ) : null}
               </div>
             ))}
 

@@ -97,8 +97,13 @@ export type ArticleBlock =
       clear?: boolean;
       related_match_ids?: string[];
     }
+  | { type: "heading"; text: string; level: 2 | 3 | 4 }
+  | { type: "quote"; text: string; citation?: string | null }
+  | { type: "pullquote"; text: string; citation?: string | null }
   | { type: "list"; ordered: boolean; items: Array<string | { text: string; related_match_ids?: string[] }> }
-  | { type: "image"; url: string; align: "left" | "right" | "full"; width?: "small" | "medium" | "large"; caption: string | null };
+  | { type: "image"; url: string; align: "left" | "right" | "full"; width?: "small" | "medium" | "large"; caption: string | null; crop?: { zoom: number; x: number; y: number } }
+  | { type: "embed"; url: string; provider: "youtube" | "vimeo" | "social"; caption?: string | null }
+  | { type: "table"; headers: string[]; rows: string[][] };
 
 export type CoachProfile = {
   id: string;
