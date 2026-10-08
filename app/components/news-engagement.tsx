@@ -19,7 +19,6 @@ export function NewsEngagement({ postId, title, viewCount, likeCount, dislikeCou
   const [dislikes, setDislikes] = useState(dislikeCount);
   const [commentsCount, setCommentsCount] = useState(commentCount);
   const [comments, setComments] = useState<NewsComment[]>([]);
-  const [showComments, setShowComments] = useState(false);
   const [authorName, setAuthorName] = useState("");
   const [commentBody, setCommentBody] = useState("");
   const [message, setMessage] = useState("");
@@ -49,12 +48,12 @@ export function NewsEngagement({ postId, title, viewCount, likeCount, dislikeCou
   });
 
   useEffect(() => {
-    if (!showComments) return;
+    if (compact) return;
     getNewsComments(postId).then(setComments);
-  }, [postId, showComments]);
+  }, [compact, postId]);
 
   async function react(reaction: "like" | "dislike") {
-    if (voted || isWorking) return;
+    if (isWorking) return;
     setIsWorking(true);
     setMessage("");
     const result = await reactToNews(postId, reaction, visitorId);
@@ -63,12 +62,13 @@ export function NewsEngagement({ postId, title, viewCount, likeCount, dislikeCou
     } else {
       setLikes(result.like_count);
       setDislikes(result.dislike_count);
-      setVoted(reaction);
       try {
-        window.localStorage.setItem(`magic.news.vote.${postId}`, reaction);
+        if (voted === reaction) window.localStorage.removeItem(`magic.news.vote.${postId}`);
+        else window.localStorage.setItem(`magic.news.vote.${postId}`, reaction);
       } catch {
         // The server has recorded the reaction even if browser storage is unavailable.
       }
+      setVoted(voted === reaction ? null : reaction);
     }
     setIsWorking(false);
   }
@@ -111,7 +111,6 @@ export function NewsEngagement({ postId, title, viewCount, likeCount, dislikeCou
       setComments((current) => [{ id: `local-${Date.now()}`, news_post_id: postId, author_name: displayName, body: commentBody.trim(), created_at: new Date().toISOString() }, ...current]);
       setAuthorName("");
       setCommentBody("");
-      setShowComments(true);
       setMessage("Comment posted.");
     }
     setIsWorking(false);
@@ -121,18 +120,18 @@ export function NewsEngagement({ postId, title, viewCount, likeCount, dislikeCou
     <section className={compact ? "news-engagement news-engagement-compact" : "news-engagement"} aria-label="News engagement">
       <div className="news-engagement-row">
         <span className="news-engagement-stat"><i className="fa-solid fa-eye" aria-hidden="true" /> {formatCompactCount(viewCount)}</span>
-        <button type="button" className={voted === "like" ? "news-engagement-button active" : "news-engagement-button"} onClick={() => react("like")} disabled={Boolean(voted) || isWorking} aria-label="Like this story">
+        <button type="button" className={voted === "like" ? "news-engagement-button active" : "news-engagement-button"} onClick={() => react("like")} disabled={isWorking} aria-label="Like this story">
           <i className="fa-solid fa-thumbs-up" aria-hidden="true" /> {formatCompactCount(likes)}
         </button>
-        <button type="button" className={voted === "dislike" ? "news-engagement-button active" : "news-engagement-button"} onClick={() => react("dislike")} disabled={Boolean(voted) || isWorking} aria-label="Dislike this story">
+        <button type="button" className={voted === "dislike" ? "news-engagement-button active" : "news-engagement-button"} onClick={() => react("dislike")} disabled={isWorking} aria-label="Dislike this story">
           <i className="fa-solid fa-thumbs-down" aria-hidden="true" /> {formatCompactCount(dislikes)}
         </button>
         <button type="button" className="news-engagement-button" onClick={share} aria-label="Share this story">
           <i className="fa-solid fa-share-nodes" aria-hidden="true" /> Share
         </button>
-        {!compact && <button type="button" className="news-engagement-button" onClick={() => setShowComments((current) => !current)} aria-expanded={showComments} aria-label="Show comments">
+        {!compact && <span className="news-engagement-button news-engagement-comment-count" aria-label="Comments">
           <i className="fa-solid fa-comment" aria-hidden="true" /> {formatCompactCount(commentsCount)}
-        </button>}
+        </span>}
         {compact && <a className="news-engagement-button" href={`/news/${encodeURIComponent(slug || "")}`} onClick={(event) => event.stopPropagation()} aria-label="Open comments for this story">
           <i className="fa-solid fa-comment" aria-hidden="true" /> {formatCompactCount(commentsCount)}
         </a>}
@@ -141,14 +140,28 @@ export function NewsEngagement({ postId, title, viewCount, likeCount, dislikeCou
         </button>
       </div>
       {message && <p className="news-engagement-message" role="status">{message}</p>}
-      {showComments && (
+      {!compact && (
         <div className="news-comments-panel">
+          <div className="news-comments-heading">
+            <div>
+              <strong>Join the conversation</strong>
+              <span>Share your thoughts about this story.</span>
+            </div>
+            <span>{formatCompactCount(commentsCount)} comments</span>
+          </div>
           <form className="news-comment-form" onSubmit={submitComment}>
-            <input value={authorName} onChange={(event) => setAuthorName(event.target.value)} maxLength={80} placeholder="Your name (optional)" aria-label="Your name (optional)" />
-            <textarea value={commentBody} onChange={(event) => setCommentBody(event.target.value)} maxLength={1000} placeholder="Write a comment..." aria-label="Write a comment" rows={3} required />
+            <label>
+              <span>Name <small>(optional)</small></span>
+              <input value={authorName} onChange={(event) => setAuthorName(event.target.value)} maxLength={80} placeholder="Leave blank to post as Guest" aria-label="Your name (optional)" />
+            </label>
+            <label>
+              <span>Comment</span>
+              <textarea value={commentBody} onChange={(event) => setCommentBody(event.target.value)} maxLength={1000} placeholder="Write a comment..." aria-label="Write a comment" rows={3} required />
+            </label>
             <button type="submit" disabled={isWorking}>Post comment</button>
           </form>
           <div className="news-comments-list">
+            <h3>Recent comments</h3>
             {comments.map((comment) => <article className="news-comment" key={comment.id}><strong>{comment.author_name}</strong><p>{comment.body}</p></article>)}
             {!comments.length && <p className="news-comments-empty">Be the first to comment.</p>}
           </div>
