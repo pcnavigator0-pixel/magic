@@ -2211,6 +2211,59 @@ body.modal-open {
   font-size: 13px;
 }
 
+@media print {
+  .site-header,
+  .site-footer,
+  .public-footer,
+  .article-back-link,
+  .news-engagement,
+  .article-sequence,
+  .news-carousel-arrow,
+  .news-carousel-dots {
+    display: none !important;
+  }
+
+  .public-page,
+  .article-page {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+  }
+
+  .article-header h1 {
+    color: #111111 !important;
+    font-size: 30pt !important;
+  }
+
+  .article-header p,
+  .article-body,
+  .article-body p,
+  .article-body li,
+  .article-body h2,
+  .article-body h3,
+  .article-body h4,
+  .article-body blockquote {
+    color: #111111 !important;
+  }
+
+  .article-cover,
+  .article-body img {
+    max-width: 100% !important;
+    break-inside: avoid;
+  }
+
+  .article-body p,
+  .article-body li,
+  .article-body blockquote,
+  .article-body table,
+  .article-body img {
+    break-inside: avoid;
+  }
+}
+
 .article-sequence {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

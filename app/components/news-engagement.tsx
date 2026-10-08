@@ -65,17 +65,8 @@ export function NewsEngagement({ postId, title, viewCount, likeCount, dislikeCou
   }
 
   function download() {
-    const content = `${title}\n\n${window.location.href}\n`;
-    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-    const downloadUrl = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = downloadUrl;
-    link.download = `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "news-story"}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(downloadUrl);
-    setMessage("Story downloaded.");
+    setMessage("Choose Save as PDF in the print window to download the complete story.");
+    window.setTimeout(() => window.print(), 0);
   }
 
   async function submitComment(event: FormEvent<HTMLFormElement>) {
@@ -114,7 +105,7 @@ export function NewsEngagement({ postId, title, viewCount, likeCount, dislikeCou
           <i className="fa-solid fa-comment" aria-hidden="true" /> {commentsCount}
         </button>
         <button type="button" className="news-engagement-button" onClick={download} aria-label="Download this story">
-          <i className="fa-solid fa-download" aria-hidden="true" /> Download
+          <i className="fa-solid fa-file-pdf" aria-hidden="true" /> Download PDF
         </button>
       </div>
       {message && <p className="news-engagement-message" role="status">{message}</p>}
