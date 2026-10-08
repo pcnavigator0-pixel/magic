@@ -854,6 +854,7 @@ export default function CoachDashboardPage() {
                   <th>Title</th>
                   <th>Category</th>
                   <th>Published</th>
+                  <th>Views</th>
                   <th>Status</th>
                   <th>Actions</th>
                 </tr>
@@ -864,6 +865,7 @@ export default function CoachDashboardPage() {
                     <td>{post.title}</td>
                     <td>{post.category}</td>
                     <td>{formatDisplayDate(post.published_at)}</td>
+                    <td><span className="news-view-count"><i className="fa-solid fa-eye" aria-hidden="true" /> {post.view_count || 0}</span></td>
                     <td>{post.is_published ? "Published" : "Draft"}</td>
                     <td>
                       <RowActions
@@ -877,7 +879,7 @@ export default function CoachDashboardPage() {
                   </tr>
                 ))}
                 {dashboardData.news.length === 0 && (
-                  <tr><td colSpan={5}>No news has been published yet.</td></tr>
+                  <tr><td colSpan={6}>No news has been published yet.</td></tr>
                 )}
               </tbody>
             </table>

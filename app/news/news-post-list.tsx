@@ -26,7 +26,7 @@ export function NewsPostList({ posts }: NewsPostListProps) {
               <span>{post.category}</span>
               <h2>{post.title}</h2>
               {post.excerpt && <p>{post.excerpt}</p>}
-              <small>{formatDisplayDate(post.published_at)} - Magic Basketball Initiatives</small>
+              <small>{formatDisplayDate(post.published_at)} - Magic Basketball Initiatives <span className="news-view-count"><i className="fa-solid fa-eye" aria-hidden="true" /> {post.view_count || 0}</span></small>
             </div>
           </Link>
         </article>

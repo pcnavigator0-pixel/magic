@@ -83,6 +83,7 @@ export type NewsPost = {
   image_url: string | null;
   published_at: string;
   is_published: boolean;
+  view_count?: number;
   previous_news_id?: string | null;
   next_news_id?: string | null;
 };
@@ -324,6 +325,18 @@ export async function getNewsPostBySlug(slug: string): Promise<NewsPost | null> 
   );
 
   return posts[0] || null;
+}
+
+export async function recordNewsView(id: string): Promise<number | null> {
+  if (!canUseSupabase()) return null;
+  try {
+    return await restFetch<number>("rpc/increment_news_view", {
+      method: "POST",
+      body: JSON.stringify({ post_id: id }),
+    });
+  } catch {
+    return null;
+  }
 }
 
 export async function getNewsPostById(id: string, accessToken?: string): Promise<NewsPost | null> {

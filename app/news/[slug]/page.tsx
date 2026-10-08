@@ -4,7 +4,7 @@ import { ArticleBody } from "@/app/components/article-body";
 import { NewsImageCarousel } from "@/app/components/news-image-carousel";
 import { PublicFooter } from "@/app/components/public-shell";
 import { SiteHeader } from "@/app/components/site-header";
-import { formatDisplayDate, getMagicData, getNewsPostById, getNewsPostBySlug } from "@/lib/magic-data";
+import { formatDisplayDate, getMagicData, getNewsPostById, getNewsPostBySlug, recordNewsView } from "@/lib/magic-data";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +17,12 @@ export default async function NewsArticlePage({
   const post = await getNewsPostBySlug(slug);
 
   if (!post) notFound();
+
+  const recordedViewCount = await recordNewsView(post.id);
+  const displayedPost = {
+    ...post,
+    view_count: recordedViewCount ?? post.view_count ?? 0,
+  };
 
   const [previousNews, nextNews, matchData] = await Promise.all([
     post.previous_news_id ? getNewsPostById(post.previous_news_id) : Promise.resolve(null),
@@ -37,20 +43,20 @@ export default async function NewsArticlePage({
           <header className="article-header">
             <span>{post.category}</span>
             <h1>{post.title}</h1>
-            <div className="article-meta">{formatDisplayDate(post.published_at)} - Magic Basketball Initiatives</div>
-            {post.excerpt && <p>{post.excerpt}</p>}
+            <div className="article-meta">{formatDisplayDate(displayedPost.published_at)} - Magic Basketball Initiatives <span className="news-view-count"><i className="fa-solid fa-eye" aria-hidden="true" /> {displayedPost.view_count} views</span></div>
+            {displayedPost.excerpt && <p>{displayedPost.excerpt}</p>}
           </header>
 
           {post.image_url && (
             <NewsImageCarousel
               imageValue={post.image_url}
-              alt={post.title}
+              alt={displayedPost.title}
               className="article-cover"
               placeholderClassName="news-image-placeholder news-image-placeholder-large"
             />
           )}
 
-          <ArticleBody blocks={post.content} fallbackText={post.excerpt} matches={matchData.matches} />
+          <ArticleBody blocks={displayedPost.content} fallbackText={displayedPost.excerpt} matches={matchData.matches} />
 
           {(previousNews || nextNews) && (
             <nav className="article-sequence" aria-label="Related news sequence">

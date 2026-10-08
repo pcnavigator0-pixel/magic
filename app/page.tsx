@@ -132,6 +132,7 @@ export default function Home() {
                 <span className="meta-trending">{rotatingRecentPost.category}</span>
                 <span className="meta-date">- {formatDisplayDate(rotatingRecentPost.published_at)}</span>
                 <span className="meta-date">• {formatDisplayDate(featuredNews.published_at)}</span>
+                <span className="meta-date news-view-count"><i className="fa-solid fa-eye" aria-hidden="true" /> {rotatingRecentPost.view_count || 0}</span>
               </div>
               <h2 className="card-title">{rotatingRecentPost.title}</h2>
               </Link>
@@ -201,7 +202,7 @@ export default function Home() {
               <span className="badge-category">{featuredNews.category}</span>
               <h2>{featuredNews.title}</h2>
               {featuredNews.excerpt && <p>{featuredNews.excerpt}</p>}
-              <div className="article-meta-footer">{formatDisplayDate(featuredNews.published_at)} • Magic Basketball Initiatives</div>
+              <div className="article-meta-footer">{formatDisplayDate(featuredNews.published_at)} • Magic Basketball Initiatives <span className="news-view-count"><i className="fa-solid fa-eye" aria-hidden="true" /> {featuredNews.view_count || 0}</span></div>
             </div>
           </Link>
 
@@ -215,6 +216,7 @@ export default function Home() {
                 date={formatDisplayDate(post.published_at)}
                 title={post.title}
                 slug={post.slug}
+                viewCount={post.view_count || 0}
               />
             ))}
           </div>
@@ -303,6 +305,7 @@ export default function Home() {
               category={post.category}
               date={formatDisplayDate(post.published_at)}
               slug={post.slug}
+              viewCount={post.view_count || 0}
             />
           ))}
         </div>
@@ -447,12 +450,12 @@ function TeamIcon({ color, variant }: { color: string; variant: TeamIconVariant 
   );
 }
 
-function MiniArticle({ image, alt, category, date, title, slug }: { image: string | null; alt: string; category: string; date: string; title: string; slug: string }) {
+function MiniArticle({ image, alt, category, date, title, slug, viewCount }: { image: string | null; alt: string; category: string; date: string; title: string; slug: string; viewCount: number }) {
   return (
     <Link className="mini-article-row home-content-link" href={`/news/${slug}`} aria-label={`Read ${title}`}>
       {image && <NewsImageCarousel imageValue={image} alt={alt} autoAdvanceMs={3400} />}
       <div>
-        <div className="mini-meta"><span>{category}</span> • {date}</div>
+        <div className="mini-meta"><span>{category}</span> • {date} <span className="news-view-count"><i className="fa-solid fa-eye" aria-hidden="true" /> {viewCount}</span></div>
         <h3 className="mini-title">{title}</h3>
       </div>
     </Link>
@@ -501,13 +504,13 @@ function PlayerCard({ number, name, position, image }: { number: string; name: s
   );
 }
 
-function NewsCard({ image, title, category, date, slug }: { image: string | null; title: string; category: string; date: string; slug: string }) {
+function NewsCard({ image, title, category, date, slug, viewCount }: { image: string | null; title: string; category: string; date: string; slug: string; viewCount: number }) {
   return (
     <Link className="news-card home-content-link" href={`/news/${slug}`} aria-label={`Read ${title}`}>
       {image && <NewsImageCarousel imageValue={image} alt={`${title} Feature Image`} autoAdvanceMs={3400} />}
       <span className="section-label news-card-label">{category}</span>
       <h3>{title}</h3>
-      <div className="news-footer-meta">{date} • Magic Basketball Initiatives</div>
+      <div className="news-footer-meta">{date} • Magic Basketball Initiatives <span className="news-view-count"><i className="fa-solid fa-eye" aria-hidden="true" /> {viewCount}</span></div>
     </Link>
   );
 }

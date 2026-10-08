@@ -735,6 +735,17 @@ body.modal-open {
 
 .meta-trending { color: var(--text-muted); }
 .meta-date { color: rgba(255, 255, 255, 0.4); }
+.news-view-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  color: inherit;
+}
+
+.news-view-count i {
+  font-size: 0.9em;
+}
 .card-title { font-size: 20px; font-weight: 700; line-height: 1.3; }
 
 .hero-footer {
