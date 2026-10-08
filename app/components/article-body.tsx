@@ -154,7 +154,7 @@ function sanitizeInlineHtml(value: string) {
       if (!/^(https?:\/\/|mailto:|\/|#)/i.test(href)) return "";
       return `<a href="${escapeAttribute(href)}" target="_blank" rel="noreferrer noopener">`;
     }
-    const color = rawAttrs.match(/(?:color|style\s*=\s*["'][^"']*color\s*:)\s*["']?\s*(#[0-9a-f]{3,8}|[a-z]+)\s*["']?/i)?.[1];
+    const color = extractSafeColor(rawAttrs);
     return color ? `<span style="color:${escapeAttribute(color)}">` : `<${tag}>`;
   });
   return html.replace(/<\/([a-z0-9]+)>/gi, (_, rawTag: string) => {
@@ -162,6 +162,16 @@ function sanitizeInlineHtml(value: string) {
     if (!["a", "b", "em", "font", "i", "s", "span", "strong", "u", "div", "p"].includes(tag)) return "";
     return `</${tag === "font" ? "span" : tag}>`;
   });
+}
+
+function extractSafeColor(attributes: string) {
+  const color = attributes.match(/\bcolor\s*=\s*["']\s*(#[0-9a-f]{3,8}|rgba?\(\s*[0-9.%\s,]+\)|[a-z]+)\s*["']/i)?.[1]
+    || attributes.match(/\bstyle\s*=\s*["'][^"']*\bcolor\s*:\s*(#[0-9a-f]{3,8}|rgba?\(\s*[0-9.%\s,]+\)|[a-z]+)\s*;?[^"']*["']/i)?.[1];
+
+  if (!color) return null;
+  if (/^#[0-9a-f]{3,8}$/i.test(color) || /^[a-z]+$/i.test(color)) return color;
+  if (/^rgba?\(\s*[0-9.%]+(?:\s*,\s*[0-9.%]+){2,3}\s*\)$/i.test(color)) return color;
+  return null;
 }
 
 function escapeAttribute(value: string) {
