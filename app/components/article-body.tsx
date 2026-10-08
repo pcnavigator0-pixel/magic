@@ -157,7 +157,11 @@ function sanitizeInlineHtml(value: string) {
     const color = rawAttrs.match(/(?:color|style\s*=\s*["'][^"']*color\s*:)\s*["']?\s*(#[0-9a-f]{3,8}|[a-z]+)\s*["']?/i)?.[1];
     return color ? `<span style="color:${escapeAttribute(color)}">` : `<${tag}>`;
   });
-  return html.replace(/<\/([a-z0-9]+)>/gi, (_, rawTag: string) => ["a", "b", "em", "font", "i", "s", "span", "strong", "u", "div", "p"].includes(rawTag.toLowerCase()) ? `</${rawTag.toLowerCase()}>` : "");
+  return html.replace(/<\/([a-z0-9]+)>/gi, (_, rawTag: string) => {
+    const tag = rawTag.toLowerCase();
+    if (!["a", "b", "em", "font", "i", "s", "span", "strong", "u", "div", "p"].includes(tag)) return "";
+    return `</${tag === "font" ? "span" : tag}>`;
+  });
 }
 
 function escapeAttribute(value: string) {
