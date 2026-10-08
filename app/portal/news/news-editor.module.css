@@ -180,6 +180,40 @@
   gap: 4px;
 }
 
+.colorPickerWrap {
+  position: relative;
+}
+
+.colorPalette {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: repeat(3, 24px);
+  gap: 6px;
+  transform: translateX(-50%);
+  border: 1px solid #d6dde3;
+  border-radius: 7px;
+  background: #ffffff;
+  padding: 9px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.18);
+}
+
+.colorSwatch {
+  width: 24px;
+  height: 24px;
+  border: 1px solid rgba(17, 24, 32, 0.25);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.colorSwatch:hover,
+.colorSwatch:focus-visible {
+  outline: 2px solid #e64a19;
+  outline-offset: 2px;
+}
+
 .ribbonButton {
   display: inline-flex;
   min-width: 70px;

@@ -31,6 +31,18 @@ type RichTextSurfaceProps = {
   register: (element: HTMLDivElement | null) => void;
 };
 
+const textColors = [
+  { name: "Black", value: "#111111" },
+  { name: "Red", value: "#d32f2f" },
+  { name: "Orange", value: "#e64a19" },
+  { name: "Yellow", value: "#f9a825" },
+  { name: "Green", value: "#2e7d32" },
+  { name: "Blue", value: "#1769aa" },
+  { name: "Purple", value: "#6a1b9a" },
+  { name: "Gray", value: "#6b7a87" },
+  { name: "White", value: "#ffffff" },
+] as const;
+
 function RichTextSurface({ html, label, onChange, onFocus, register }: RichTextSurfaceProps) {
   const surfaceRef = useRef<HTMLDivElement | null>(null);
 
@@ -88,6 +100,7 @@ export function NewsEditor({ postId }: NewsEditorProps) {
   const textareas = useRef<Record<string, HTMLTextAreaElement | null>>({});
   const editableRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [activeEditable, setActiveEditable] = useState<string | null>(null);
+  const [showColorPalette, setShowColorPalette] = useState(false);
   const [publishedAt, setPublishedAt] = useState<string | null>(null);
   const [slugTouched, setSlugTouched] = useState(Boolean(postId));
   const [status, setStatus] = useState("Checking coach access...");
@@ -233,9 +246,9 @@ export function NewsEditor({ postId }: NewsEditorProps) {
     runFormat("insertHTML", `<a href="${escapeHtmlAttribute(url)}">${escapeHtmlText(label || url)}</a>`);
   }
 
-  function chooseTextColor() {
-    const color = window.prompt("Enter a color name or hex value", "#e64a19");
-    if (color) runFormat("foreColor", color);
+  function chooseTextColor(color: string) {
+    runFormat("foreColor", color);
+    setShowColorPalette(false);
   }
 
   function escapeHtmlAttribute(value: string) {
@@ -501,7 +514,25 @@ export function NewsEditor({ postId }: NewsEditorProps) {
               <button className={styles.ribbonButton} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runFormat("italic")} title="Italicize selected text"><em>I</em><span>Italic</span></button>
               <button className={styles.ribbonButton} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runFormat("underline")} title="Underline selected text"><u>U</u><span>Underline</span></button>
               <button className={styles.ribbonButton} type="button" onMouseDown={(event) => event.preventDefault()} onClick={addLink} title="Add a hyperlink"><i className="fa-solid fa-link" aria-hidden="true" /><span>Link</span></button>
-              <button className={styles.ribbonButton} type="button" onMouseDown={(event) => event.preventDefault()} onClick={chooseTextColor} title="Change selected text color"><i className="fa-solid fa-palette" aria-hidden="true" /><span>Color</span></button>
+              <div className={styles.colorPickerWrap}>
+                <button className={styles.ribbonButton} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => setShowColorPalette((current) => !current)} title="Choose a text color"><i className="fa-solid fa-palette" aria-hidden="true" /><span>Color</span></button>
+                {showColorPalette && (
+                  <div className={styles.colorPalette} role="group" aria-label="Text colors">
+                    {textColors.map((color) => (
+                      <button
+                        className={styles.colorSwatch}
+                        key={color.value}
+                        type="button"
+                        title={color.name}
+                        aria-label={`Apply ${color.name}`}
+                        style={{ backgroundColor: color.value }}
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => chooseTextColor(color.value)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <div className={styles.ribbonGroup}>
