@@ -114,7 +114,7 @@ export function NewsEngagement({ postId, title, viewCount, likeCount, dislikeCou
           <i className="fa-solid fa-comment" aria-hidden="true" /> {commentsCount}
         </a>}
         <button type="button" className="news-engagement-button" onClick={download} aria-label="Download this story">
-          <i className="fa-solid fa-file-pdf" aria-hidden="true" /> Download PDF
+          <i className="fa-solid fa-file-pdf" aria-hidden="true" /> {compact ? "PDF" : "Download PDF"}
         </button>
       </div>
       {message && <p className="news-engagement-message" role="status">{message}</p>}
