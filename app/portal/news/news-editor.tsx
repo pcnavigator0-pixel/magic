@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, MouseEvent as ReactMouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import { ArticleBody, normalizeArticleBlocks } from "@/app/components/article-body";
 import { uploadImageToBucket } from "@/lib/client-image-upload";
 import {
@@ -99,6 +99,8 @@ export function NewsEditor({ postId }: NewsEditorProps) {
   const [availableMatches, setAvailableMatches] = useState<Match[]>([]);
   const textareas = useRef<Record<string, HTMLTextAreaElement | null>>({});
   const editableRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const colorPickerRef = useRef<HTMLDivElement | null>(null);
+  const savedSelection = useRef<Range | null>(null);
   const [activeEditable, setActiveEditable] = useState<string | null>(null);
   const [showColorPalette, setShowColorPalette] = useState(false);
   const [publishedAt, setPublishedAt] = useState<string | null>(null);
@@ -108,6 +110,18 @@ export function NewsEditor({ postId }: NewsEditorProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const isEditing = Boolean(postId);
+
+  useEffect(() => {
+    if (!showColorPalette) return undefined;
+
+    function closePalette(event: MouseEvent) {
+      const target = event.target as Node;
+      if (!colorPickerRef.current?.contains(target)) setShowColorPalette(false);
+    }
+
+    document.addEventListener("mousedown", closePalette);
+    return () => document.removeEventListener("mousedown", closePalette);
+  }, [showColorPalette]);
 
   function applyPost(post: NewsPost) {
     setForm({
@@ -225,7 +239,13 @@ export function NewsEditor({ postId }: NewsEditorProps) {
 
   function runFormat(command: string, value?: string) {
     if (!activeEditable) return;
-    editableRefs.current[activeEditable]?.focus();
+    const editable = editableRefs.current[activeEditable];
+    editable?.focus();
+    if (savedSelection.current && editable?.contains(savedSelection.current.commonAncestorContainer)) {
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(savedSelection.current);
+    }
     document.execCommand(command, false, value);
     const [kind, indexValue] = activeEditable.split(":");
     if (kind === "block") {
@@ -249,6 +269,15 @@ export function NewsEditor({ postId }: NewsEditorProps) {
   function chooseTextColor(color: string) {
     runFormat("foreColor", color);
     setShowColorPalette(false);
+  }
+
+  function rememberSelection(event: ReactMouseEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    const selection = window.getSelection();
+    const editable = activeEditable ? editableRefs.current[activeEditable] : null;
+    if (selection?.rangeCount && editable?.contains(selection.anchorNode) && editable.contains(selection.focusNode)) {
+      savedSelection.current = selection.getRangeAt(0).cloneRange();
+    }
   }
 
   function escapeHtmlAttribute(value: string) {
@@ -514,8 +543,8 @@ export function NewsEditor({ postId }: NewsEditorProps) {
               <button className={styles.ribbonButton} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runFormat("italic")} title="Italicize selected text"><em>I</em><span>Italic</span></button>
               <button className={styles.ribbonButton} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runFormat("underline")} title="Underline selected text"><u>U</u><span>Underline</span></button>
               <button className={styles.ribbonButton} type="button" onMouseDown={(event) => event.preventDefault()} onClick={addLink} title="Add a hyperlink"><i className="fa-solid fa-link" aria-hidden="true" /><span>Link</span></button>
-              <div className={styles.colorPickerWrap}>
-                <button className={styles.ribbonButton} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => setShowColorPalette((current) => !current)} title="Choose a text color"><i className="fa-solid fa-palette" aria-hidden="true" /><span>Color</span></button>
+              <div className={styles.colorPickerWrap} ref={colorPickerRef}>
+                <button className={styles.ribbonButton} type="button" onMouseDown={rememberSelection} onClick={() => setShowColorPalette((current) => !current)} title="Choose a text color"><i className="fa-solid fa-palette" aria-hidden="true" /><span>Color</span></button>
                 {showColorPalette && (
                   <div className={styles.colorPalette} role="group" aria-label="Text colors">
                     {textColors.map((color) => (
