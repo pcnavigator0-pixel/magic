@@ -2093,6 +2093,124 @@ body.modal-open {
   text-transform: uppercase;
 }
 
+.news-engagement {
+  margin: 18px 0 28px;
+  border-top: 1px solid #e2e8ed;
+  border-bottom: 1px solid #e2e8ed;
+  padding: 12px 0;
+}
+
+.news-engagement-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.news-engagement-stat,
+.news-engagement-button {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #d6dde3;
+  border-radius: 999px;
+  background: #ffffff;
+  padding: 0 12px;
+  color: #52616d;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.news-engagement-button {
+  cursor: pointer;
+}
+
+.news-engagement-button:hover,
+.news-engagement-button.active {
+  border-color: var(--primary-orange);
+  background: #fff4f0;
+  color: var(--primary-orange);
+}
+
+.news-engagement-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.news-engagement-message {
+  margin: 8px 0 0;
+  color: #687783;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.news-comments-panel {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+  border-radius: 8px;
+  background: #f7f9fa;
+  padding: 16px;
+}
+
+.news-comment-form {
+  display: grid;
+  gap: 10px;
+}
+
+.news-comment-form input,
+.news-comment-form textarea {
+  width: 100%;
+  border: 1px solid #d6dde3;
+  border-radius: 6px;
+  background: #ffffff;
+  padding: 10px 12px;
+  color: #25313a;
+  font: inherit;
+  font-size: 13px;
+}
+
+.news-comment-form button {
+  width: fit-content;
+  border: 0;
+  border-radius: 999px;
+  background: var(--primary-orange);
+  color: #ffffff;
+  padding: 9px 16px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.news-comments-list {
+  display: grid;
+  gap: 10px;
+}
+
+.news-comment {
+  border-top: 1px solid #e2e8ed;
+  padding-top: 10px;
+}
+
+.news-comment strong {
+  color: #25313a;
+  font-size: 13px;
+}
+
+.news-comment p {
+  margin: 4px 0 0;
+  color: #52616d;
+  font-size: 13px;
+  white-space: pre-wrap;
+}
+
+.news-comments-empty {
+  margin: 0;
+  color: #7a8b99;
+  font-size: 13px;
+}
+
 .article-sequence {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

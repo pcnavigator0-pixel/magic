@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArticleBody } from "@/app/components/article-body";
+import { NewsEngagement } from "@/app/components/news-engagement";
 import { NewsImageCarousel } from "@/app/components/news-image-carousel";
 import { PublicFooter } from "@/app/components/public-shell";
 import { SiteHeader } from "@/app/components/site-header";
@@ -45,6 +46,14 @@ export default async function NewsArticlePage({
             <h1>{post.title}</h1>
             <div className="article-meta">{formatDisplayDate(displayedPost.published_at)} - Magic Basketball Initiatives <span className="news-view-count"><i className="fa-solid fa-eye" aria-hidden="true" /> {displayedPost.view_count} views</span></div>
             {displayedPost.excerpt && <p>{displayedPost.excerpt}</p>}
+            <NewsEngagement
+              postId={displayedPost.id}
+              title={displayedPost.title}
+              viewCount={displayedPost.view_count}
+              likeCount={displayedPost.like_count || 0}
+              dislikeCount={displayedPost.dislike_count || 0}
+              commentCount={displayedPost.comment_count || 0}
+            />
           </header>
 
           {post.image_url && (

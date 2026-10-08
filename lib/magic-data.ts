@@ -84,8 +84,19 @@ export type NewsPost = {
   published_at: string;
   is_published: boolean;
   view_count?: number;
+  like_count?: number;
+  dislike_count?: number;
+  comment_count?: number;
   previous_news_id?: string | null;
   next_news_id?: string | null;
+};
+
+export type NewsComment = {
+  id: string;
+  news_post_id: string;
+  author_name: string;
+  body: string;
+  created_at: string;
 };
 
 export type ArticleBlock =
@@ -336,6 +347,41 @@ export async function recordNewsView(id: string): Promise<number | null> {
     });
   } catch {
     return null;
+  }
+}
+
+export async function reactToNews(id: string, reaction: "like" | "dislike") {
+  if (!canUseSupabase()) return null;
+  try {
+    const rows = await restFetch<Array<{ like_count: number; dislike_count: number }>>("rpc/react_to_news", {
+      method: "POST",
+      body: JSON.stringify({ post_id: id, reaction }),
+    });
+    return rows[0] || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function addNewsComment(id: string, authorName: string, body: string) {
+  if (!canUseSupabase()) return null;
+  try {
+    const rows = await restFetch<Array<{ comment_count: number }>>("rpc/add_news_comment", {
+      method: "POST",
+      body: JSON.stringify({ post_id: id, comment_author: authorName, comment_body: body }),
+    });
+    return rows[0] || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getNewsComments(id: string) {
+  if (!canUseSupabase()) return [];
+  try {
+    return await restFetch<NewsComment[]>(`news_comments?news_post_id=eq.${encodeURIComponent(id)}&is_approved=eq.true&select=id,news_post_id,author_name,body,created_at&order=created_at.desc&limit=100`);
+  } catch {
+    return [];
   }
 }
 
