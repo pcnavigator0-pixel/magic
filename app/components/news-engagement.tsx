@@ -24,6 +24,20 @@ export function NewsEngagement({ postId, title, viewCount, likeCount, dislikeCou
   const [commentBody, setCommentBody] = useState("");
   const [message, setMessage] = useState("");
   const [isWorking, setIsWorking] = useState(false);
+  const [visitorId] = useState(() => {
+    if (typeof window === "undefined") return "server-rendered-visitor";
+    try {
+      const existing = window.localStorage.getItem("magic.news.visitor-id");
+      if (existing) return existing;
+      const created = typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `visitor-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      window.localStorage.setItem("magic.news.visitor-id", created);
+      return created;
+    } catch {
+      return `visitor-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    }
+  });
   const [voted, setVoted] = useState<"like" | "dislike" | null>(() => {
     if (typeof window === "undefined") return null;
     try {
@@ -43,7 +57,7 @@ export function NewsEngagement({ postId, title, viewCount, likeCount, dislikeCou
     if (voted || isWorking) return;
     setIsWorking(true);
     setMessage("");
-    const result = await reactToNews(postId, reaction);
+    const result = await reactToNews(postId, reaction, visitorId);
     if (!result) {
       setMessage("We could not save your reaction. Please try again.");
     } else {

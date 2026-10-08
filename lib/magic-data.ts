@@ -350,12 +350,12 @@ export async function recordNewsView(id: string): Promise<number | null> {
   }
 }
 
-export async function reactToNews(id: string, reaction: "like" | "dislike") {
+export async function reactToNews(id: string, reaction: "like" | "dislike", visitorId: string) {
   if (!canUseSupabase()) return null;
   try {
     const rows = await restFetch<Array<{ like_count: number; dislike_count: number }>>("rpc/react_to_news", {
       method: "POST",
-      body: JSON.stringify({ post_id: id, reaction }),
+      body: JSON.stringify({ post_id: id, reaction, voter_id: visitorId }),
     });
     return rows[0] || null;
   } catch {
