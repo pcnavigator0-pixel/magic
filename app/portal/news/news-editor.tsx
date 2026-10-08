@@ -80,6 +80,13 @@ type FormState = {
   is_published: boolean;
 };
 
+type BrowserDraft = {
+  form: FormState;
+  blocks: ArticleBlock[];
+  publishedAt: string | null;
+  savedAt: string;
+};
+
 const emptyForm: FormState = {
   title: "",
   slug: "",
@@ -109,7 +116,62 @@ export function NewsEditor({ postId }: NewsEditorProps) {
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const draftReady = useRef(false);
   const isEditing = Boolean(postId);
+
+  const draftKey = `magic.news-editor.draft.${postId || "new"}`;
+
+  function saveDraftToBrowser() {
+    if (typeof window === "undefined") return;
+    const draft: BrowserDraft = { form, blocks, publishedAt, savedAt: new Date().toISOString() };
+    window.localStorage.setItem(draftKey, JSON.stringify(draft));
+  }
+
+  function restoreBrowserDraft() {
+    if (typeof window === "undefined") return false;
+    try {
+      const raw = window.localStorage.getItem(draftKey);
+      if (!raw) return false;
+      const draft = JSON.parse(raw) as Partial<BrowserDraft>;
+      if (!draft.form || !Array.isArray(draft.blocks)) return false;
+      setForm({ ...emptyForm, ...draft.form });
+      setBlocks(draft.blocks);
+      setPublishedAt(draft.publishedAt || null);
+      setHasUnsavedChanges(true);
+      setStatus("Recovered unsaved browser draft. Review it, then save or publish.");
+      return true;
+    } catch {
+      window.localStorage.removeItem(draftKey);
+      return false;
+    }
+  }
+
+  function clearBrowserDraft() {
+    if (typeof window !== "undefined") window.localStorage.removeItem(draftKey);
+  }
+
+  async function refreshEditorSession() {
+    const freshSession = await getFreshPortalSession();
+    if (freshSession?.profile.role === "coach") {
+      setSession(freshSession);
+      return freshSession;
+    }
+
+    saveDraftToBrowser();
+    setSession(null);
+    setError("Your login expired. Your unsaved news draft is saved in this browser. Sign in again to continue.");
+    if (typeof window !== "undefined") {
+      window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
+    }
+    return null;
+  }
+
+  useEffect(() => {
+    if (!draftReady.current) return;
+
+    const timer = window.setTimeout(saveDraftToBrowser, 250);
+    return () => window.clearTimeout(timer);
+  }, [form, blocks, publishedAt, draftKey]);
 
   useEffect(() => {
     if (!showColorPalette) return undefined;
@@ -170,9 +232,11 @@ export function NewsEditor({ postId }: NewsEditorProps) {
           const post = await getNewsPostById(postId, freshSession.access_token);
           if (!post) throw new Error("This news post could not be found.");
           applyPost(post);
-          setStatus("");
+          draftReady.current = true;
+          if (!restoreBrowserDraft()) setStatus("");
         } else {
-          setStatus("");
+          draftReady.current = true;
+          if (!restoreBrowserDraft()) setStatus("");
         }
       } catch (loadError) {
         const message = loadError instanceof Error ? loadError.message : "Unable to load the news editor.";
@@ -189,6 +253,20 @@ export function NewsEditor({ postId }: NewsEditorProps) {
       active = false;
     };
   }, [postId]);
+
+  useEffect(() => {
+    if (!session) return undefined;
+
+    const refresh = () => {
+      void refreshEditorSession();
+    };
+    const interval = window.setInterval(refresh, 5 * 60 * 1000);
+    window.addEventListener("focus", refresh);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refresh);
+    };
+  }, [session]);
 
   const previewBlocks = useMemo(() => normalizeArticleBlocks(blocks, form.excerpt), [blocks, form.excerpt]);
 
@@ -360,32 +438,36 @@ export function NewsEditor({ postId }: NewsEditorProps) {
 
   async function uploadCover(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] || null;
-    if (!file || !session) return;
+    if (!file) return;
+    const currentSession = await refreshEditorSession();
+    if (!currentSession) return;
     setError("");
     const url = await uploadImageToBucket({
       fileValue: file,
       bucket: "news-images",
       folder: "covers",
-      accessToken: session.access_token,
+      accessToken: currentSession.access_token,
     });
     updateForm("image_url", url);
   }
 
   async function uploadBlockImage(index: number, event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] || null;
-    if (!file || !session) return;
+    if (!file) return;
+    const currentSession = await refreshEditorSession();
+    if (!currentSession) return;
     setError("");
     const url = await uploadImageToBucket({
       fileValue: file,
       bucket: "news-images",
       folder: "blocks",
-      accessToken: session.access_token,
+      accessToken: currentSession.access_token,
     });
     updateBlock(index, { url } as Partial<ArticleBlock>);
   }
 
   async function savePost(publishOverride?: boolean) {
-    if (!session || isSaving) return;
+    if (isSaving) return;
 
     const slug = createSlug(form.slug || form.title);
     const cleanedBlocks = normalizeArticleBlocks(blocks, form.excerpt);
@@ -404,6 +486,9 @@ export function NewsEditor({ postId }: NewsEditorProps) {
     setIsSaving(true);
 
     try {
+      const currentSession = await refreshEditorSession();
+      if (!currentSession) return;
+
       const payload = {
         title: form.title.trim(),
         slug,
@@ -417,41 +502,42 @@ export function NewsEditor({ postId }: NewsEditorProps) {
         is_published: publishOverride ?? form.is_published,
       };
       const oldPost = isEditing && postId
-        ? await getNewsPostById(postId, session.access_token)
+        ? await getNewsPostById(postId, currentSession.access_token)
         : null;
 
       const saved = isEditing && postId
-        ? await updateNewsPost(postId, payload, session.access_token)
-        : await insertNewsPost(payload, session.access_token);
+        ? await updateNewsPost(postId, payload, currentSession.access_token)
+        : await insertNewsPost(payload, currentSession.access_token);
       const savedPost = saved?.[0];
 
       if (savedPost) {
         setHasUnsavedChanges(false);
+        clearBrowserDraft();
         const currentId = savedPost.id;
         const previousStory = form.previous_news_id
-          ? await getNewsPostById(form.previous_news_id, session.access_token)
+          ? await getNewsPostById(form.previous_news_id, currentSession.access_token)
           : null;
         const nextStory = form.next_news_id
-          ? await getNewsPostById(form.next_news_id, session.access_token)
+          ? await getNewsPostById(form.next_news_id, currentSession.access_token)
           : null;
 
         if (previousStory && previousStory.next_news_id !== currentId) {
-          await updateNewsPostLinks(previousStory.id, { next_news_id: currentId }, session.access_token);
+          await updateNewsPostLinks(previousStory.id, { next_news_id: currentId }, currentSession.access_token);
         }
         if (nextStory && nextStory.previous_news_id !== currentId) {
-          await updateNewsPostLinks(nextStory.id, { previous_news_id: currentId }, session.access_token);
+          await updateNewsPostLinks(nextStory.id, { previous_news_id: currentId }, currentSession.access_token);
         }
 
         if (oldPost?.previous_news_id && oldPost.previous_news_id !== form.previous_news_id) {
-          const oldPreviousStory = await getNewsPostById(oldPost.previous_news_id, session.access_token);
+          const oldPreviousStory = await getNewsPostById(oldPost.previous_news_id, currentSession.access_token);
           if (oldPreviousStory?.next_news_id === currentId) {
-            await updateNewsPostLinks(oldPreviousStory.id, { next_news_id: null }, session.access_token);
+            await updateNewsPostLinks(oldPreviousStory.id, { next_news_id: null }, currentSession.access_token);
           }
         }
         if (oldPost?.next_news_id && oldPost.next_news_id !== form.next_news_id) {
-          const oldNextStory = await getNewsPostById(oldPost.next_news_id, session.access_token);
+          const oldNextStory = await getNewsPostById(oldPost.next_news_id, currentSession.access_token);
           if (oldNextStory?.previous_news_id === currentId) {
-            await updateNewsPostLinks(oldNextStory.id, { previous_news_id: null }, session.access_token);
+            await updateNewsPostLinks(oldNextStory.id, { previous_news_id: null }, currentSession.access_token);
           }
         }
 
@@ -462,7 +548,14 @@ export function NewsEditor({ postId }: NewsEditorProps) {
       setStatus("Saved.");
       setHasUnsavedChanges(false);
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Unable to save this story.");
+      saveDraftToBrowser();
+      const message = saveError instanceof Error ? saveError.message : "Unable to save this story.";
+      if (/401|403|session|authentication/i.test(message)) {
+        setSession(null);
+        setError("Your login expired. Your unsaved news draft is saved in this browser. Sign in again to continue.");
+      } else {
+        setError(message);
+      }
     } finally {
       setIsSaving(false);
     }
@@ -580,11 +673,11 @@ export function NewsEditor({ postId }: NewsEditorProps) {
           <div className={styles.ribbonGroup}>
             <span className={styles.ribbonLabel}>Publish</span>
             <div className={styles.ribbonButtons}>
-              <button className={styles.ribbonButton} type="button" disabled={isSaving || !session} onClick={() => savePost(false)} title="Save without publishing">
+              <button className={styles.ribbonButton} type="button" disabled={isSaving} onClick={() => savePost(false)} title="Save without publishing">
                 <i className="fa-regular fa-floppy-disk" aria-hidden="true" />
                 <span>Save draft</span>
               </button>
-              <button className={`${styles.ribbonButton} ${styles.ribbonPrimary}`} type="button" disabled={isSaving || !session} onClick={() => savePost(true)} title="Make this story public">
+              <button className={`${styles.ribbonButton} ${styles.ribbonPrimary}`} type="button" disabled={isSaving} onClick={() => savePost(true)} title="Make this story public">
                 <i className="fa-solid fa-paper-plane" aria-hidden="true" />
                 <span>Publish</span>
               </button>
@@ -862,10 +955,10 @@ export function NewsEditor({ postId }: NewsEditorProps) {
 
             <div className={styles.actionBar}>
               <Link className={styles.secondaryButton} href="/coach-dashboard">Cancel</Link>
-              <button className={styles.secondaryButton} type="button" disabled={isSaving || !session} onClick={() => savePost(false)}>
+              <button className={styles.secondaryButton} type="button" disabled={isSaving} onClick={() => savePost(false)}>
                 Save draft
               </button>
-              <button className={styles.primaryButton} type="button" disabled={isSaving || !session} onClick={() => savePost(true)}>
+              <button className={styles.primaryButton} type="button" disabled={isSaving} onClick={() => savePost(true)}>
                 {isSaving ? "Saving..." : isEditing && form.is_published ? "Update published story" : "Publish story"}
               </button>
             </div>
