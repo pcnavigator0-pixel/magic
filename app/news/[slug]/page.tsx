@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { PrintOnLoad } from "@/app/components/print-on-load";
 import { notFound } from "next/navigation";
 import { ArticleBody } from "@/app/components/article-body";
@@ -6,9 +7,43 @@ import { NewsEngagement } from "@/app/components/news-engagement";
 import { NewsImageCarousel } from "@/app/components/news-image-carousel";
 import { PublicFooter } from "@/app/components/public-shell";
 import { SiteHeader } from "@/app/components/site-header";
-import { formatDisplayDate, getMagicData, getNewsPostById, getNewsPostBySlug, recordNewsView } from "@/lib/magic-data";
+import { formatCompactCount, formatDisplayDate, getMagicData, getNewsPostById, getNewsPostBySlug, recordNewsView } from "@/lib/magic-data";
+import { parseImageUrls } from "@/lib/news-images";
+import { siteName, siteUrl } from "@/lib/site-config";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const post = await getNewsPostBySlug(slug);
+  if (!post) return {};
+
+  const description = post.excerpt?.trim() || `Read ${post.title} from ${siteName}.`;
+  const images = parseImageUrls(post.image_url).map((url) => ({ url, alt: post.title }));
+  const url = `${siteUrl}/news/${post.slug}`;
+
+  return {
+    title: post.title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      type: "article",
+      url,
+      siteName,
+      title: post.title,
+      description,
+      publishedTime: post.published_at,
+      authors: [siteName],
+      images,
+    },
+    twitter: {
+      card: images.length ? "summary_large_image" : "summary",
+      title: post.title,
+      description,
+      images: images.map((image) => image.url),
+    },
+  };
+}
 
 export default async function NewsArticlePage({
   params,
@@ -48,7 +83,7 @@ export default async function NewsArticlePage({
           <header className="article-header">
             <span>{post.category}</span>
             <h1>{post.title}</h1>
-            <div className="article-meta">{formatDisplayDate(displayedPost.published_at)} - Magic Basketball Initiatives <span className="news-view-count"><i className="fa-solid fa-eye" aria-hidden="true" /> {displayedPost.view_count} views</span></div>
+            <div className="article-meta">{formatDisplayDate(displayedPost.published_at)} - Magic Basketball Initiatives <span className="news-view-count"><i className="fa-solid fa-eye" aria-hidden="true" /> {formatCompactCount(displayedPost.view_count)} views</span></div>
             {displayedPost.excerpt && <p>{displayedPost.excerpt}</p>}
           </header>
 

@@ -423,6 +423,12 @@ export function formatDisplayDate(value: string) {
   }).format(new Date(value));
 }
 
+export function formatCompactCount(value: number) {
+  if (value < 1000) return String(value);
+  const compact = value >= 10000 ? Math.round(value / 1000) : Math.round(value / 100) / 10;
+  return `${compact}k`;
+}
+
 export function daysUntil(value: string) {
   const start = new Date();
   const end = new Date(`${value}T00:00:00`);

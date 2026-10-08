@@ -8,6 +8,7 @@ import { SiteHeader } from "@/app/components/site-header";
 import {
   buildStandings,
   fallbackMagicData,
+  formatCompactCount,
   formatDisplayDate,
   getMagicData,
   type MagicData,
@@ -132,7 +133,7 @@ export default function Home() {
                 <span className="meta-trending">{rotatingRecentPost.category}</span>
                 <span className="meta-date">- {formatDisplayDate(rotatingRecentPost.published_at)}</span>
                 <span className="meta-date">• {formatDisplayDate(featuredNews.published_at)}</span>
-                <span className="meta-date news-view-count"><i className="fa-solid fa-eye" aria-hidden="true" /> {rotatingRecentPost.view_count || 0}</span>
+                <span className="meta-date news-view-count"><i className="fa-solid fa-eye" aria-hidden="true" /> {formatCompactCount(rotatingRecentPost.view_count || 0)}</span>
               </div>
               <h2 className="card-title">{rotatingRecentPost.title}</h2>
               </Link>
@@ -202,7 +203,7 @@ export default function Home() {
               <span className="badge-category">{featuredNews.category}</span>
               <h2>{featuredNews.title}</h2>
               {featuredNews.excerpt && <p>{featuredNews.excerpt}</p>}
-              <div className="article-meta-footer">{formatDisplayDate(featuredNews.published_at)} • Magic Basketball Initiatives <span className="news-view-count"><i className="fa-solid fa-eye" aria-hidden="true" /> {featuredNews.view_count || 0}</span></div>
+              <div className="article-meta-footer">{formatDisplayDate(featuredNews.published_at)} • Magic Basketball Initiatives <span className="news-view-count"><i className="fa-solid fa-eye" aria-hidden="true" /> {formatCompactCount(featuredNews.view_count || 0)}</span></div>
             </div>
           </Link>
 
