@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { NewsImageCarousel } from "@/app/components/news-image-carousel";
+import { NewsEngagement } from "@/app/components/news-engagement";
 import type { NewsPost } from "@/lib/magic-data";
 import { formatDisplayDate } from "@/lib/magic-data";
 
@@ -29,6 +30,16 @@ export function NewsPostList({ posts }: NewsPostListProps) {
               <small>{formatDisplayDate(post.published_at)} - Magic Basketball Initiatives <span className="news-view-count"><i className="fa-solid fa-eye" aria-hidden="true" /> {post.view_count || 0}</span></small>
             </div>
           </Link>
+          <NewsEngagement
+            postId={post.id}
+            title={post.title}
+            slug={post.slug}
+            compact
+            viewCount={post.view_count || 0}
+            likeCount={post.like_count || 0}
+            dislikeCount={post.dislike_count || 0}
+            commentCount={post.comment_count || 0}
+          />
         </article>
       ))}
     </section>

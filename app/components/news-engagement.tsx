@@ -10,9 +10,11 @@ type NewsEngagementProps = {
   likeCount: number;
   dislikeCount: number;
   commentCount: number;
+  slug?: string;
+  compact?: boolean;
 };
 
-export function NewsEngagement({ postId, title, viewCount, likeCount, dislikeCount, commentCount }: NewsEngagementProps) {
+export function NewsEngagement({ postId, title, viewCount, likeCount, dislikeCount, commentCount, slug, compact = false }: NewsEngagementProps) {
   const [likes, setLikes] = useState(likeCount);
   const [dislikes, setDislikes] = useState(dislikeCount);
   const [commentsCount, setCommentsCount] = useState(commentCount);
@@ -50,7 +52,7 @@ export function NewsEngagement({ postId, title, viewCount, likeCount, dislikeCou
   }
 
   async function share() {
-    const url = window.location.href;
+    const url = slug ? `${window.location.origin}/news/${encodeURIComponent(slug)}` : window.location.href;
     try {
       if (navigator.share) {
         await navigator.share({ title, url });
@@ -65,6 +67,10 @@ export function NewsEngagement({ postId, title, viewCount, likeCount, dislikeCou
   }
 
   function download() {
+    if (compact && slug) {
+      window.open(`/news/${encodeURIComponent(slug)}?print=1`, "_blank", "noopener,noreferrer");
+      return;
+    }
     setMessage("Choose Save as PDF in the print window to download the complete story.");
     window.setTimeout(() => window.print(), 0);
   }
@@ -89,7 +95,7 @@ export function NewsEngagement({ postId, title, viewCount, likeCount, dislikeCou
   }
 
   return (
-    <section className="news-engagement" aria-label="News engagement">
+    <section className={compact ? "news-engagement news-engagement-compact" : "news-engagement"} aria-label="News engagement">
       <div className="news-engagement-row">
         <span className="news-engagement-stat"><i className="fa-solid fa-eye" aria-hidden="true" /> {viewCount}</span>
         <button type="button" className={voted === "like" ? "news-engagement-button active" : "news-engagement-button"} onClick={() => react("like")} disabled={Boolean(voted) || isWorking} aria-label="Like this story">
@@ -101,9 +107,12 @@ export function NewsEngagement({ postId, title, viewCount, likeCount, dislikeCou
         <button type="button" className="news-engagement-button" onClick={share} aria-label="Share this story">
           <i className="fa-solid fa-share-nodes" aria-hidden="true" /> Share
         </button>
-        <button type="button" className="news-engagement-button" onClick={() => setShowComments((current) => !current)} aria-expanded={showComments} aria-label="Show comments">
+        {!compact && <button type="button" className="news-engagement-button" onClick={() => setShowComments((current) => !current)} aria-expanded={showComments} aria-label="Show comments">
           <i className="fa-solid fa-comment" aria-hidden="true" /> {commentsCount}
-        </button>
+        </button>}
+        {compact && <a className="news-engagement-button" href={`/news/${encodeURIComponent(slug || "")}`} onClick={(event) => event.stopPropagation()} aria-label="Open comments for this story">
+          <i className="fa-solid fa-comment" aria-hidden="true" /> {commentsCount}
+        </a>}
         <button type="button" className="news-engagement-button" onClick={download} aria-label="Download this story">
           <i className="fa-solid fa-file-pdf" aria-hidden="true" /> Download PDF
         </button>

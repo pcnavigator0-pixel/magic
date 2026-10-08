@@ -2100,6 +2100,23 @@ body.modal-open {
   padding: 12px 0;
 }
 
+.news-engagement-compact {
+  margin: 0;
+  border: 0;
+  padding: 10px 14px 14px;
+}
+
+.news-engagement-compact .news-engagement-row {
+  gap: 5px;
+}
+
+.news-engagement-compact .news-engagement-stat,
+.news-engagement-compact .news-engagement-button {
+  min-height: 28px;
+  padding: 0 8px;
+  font-size: 11px;
+}
+
 .news-engagement-row {
   display: flex;
   align-items: center;

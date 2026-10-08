@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PrintOnLoad } from "@/app/components/print-on-load";
 import { notFound } from "next/navigation";
 import { ArticleBody } from "@/app/components/article-body";
 import { NewsEngagement } from "@/app/components/news-engagement";
@@ -11,10 +12,13 @@ export const dynamic = "force-dynamic";
 
 export default async function NewsArticlePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ print?: string }>;
 }) {
   const { slug } = await params;
+  const { print } = await searchParams;
   const post = await getNewsPostBySlug(slug);
 
   if (!post) notFound();
@@ -46,14 +50,6 @@ export default async function NewsArticlePage({
             <h1>{post.title}</h1>
             <div className="article-meta">{formatDisplayDate(displayedPost.published_at)} - Magic Basketball Initiatives <span className="news-view-count"><i className="fa-solid fa-eye" aria-hidden="true" /> {displayedPost.view_count} views</span></div>
             {displayedPost.excerpt && <p>{displayedPost.excerpt}</p>}
-            <NewsEngagement
-              postId={displayedPost.id}
-              title={displayedPost.title}
-              viewCount={displayedPost.view_count}
-              likeCount={displayedPost.like_count || 0}
-              dislikeCount={displayedPost.dislike_count || 0}
-              commentCount={displayedPost.comment_count || 0}
-            />
           </header>
 
           {post.image_url && (
@@ -66,6 +62,15 @@ export default async function NewsArticlePage({
           )}
 
           <ArticleBody blocks={displayedPost.content} fallbackText={displayedPost.excerpt} matches={matchData.matches} />
+
+          <NewsEngagement
+            postId={displayedPost.id}
+            title={displayedPost.title}
+            viewCount={displayedPost.view_count}
+            likeCount={displayedPost.like_count || 0}
+            dislikeCount={displayedPost.dislike_count || 0}
+            commentCount={displayedPost.comment_count || 0}
+          />
 
           {(previousNews || nextNews) && (
             <nav className="article-sequence" aria-label="Related news sequence">
@@ -86,6 +91,7 @@ export default async function NewsArticlePage({
         </article>
       </main>
       <PublicFooter />
+      {print === "1" && <PrintOnLoad />}
     </>
   );
 }
