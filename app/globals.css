@@ -2103,7 +2103,7 @@ body.modal-open {
 .news-engagement-compact {
   margin: 0;
   border: 0;
-  padding: 10px 14px 14px;
+  padding: 0 20px 16px;
 }
 
 .news-engagement-compact .news-engagement-row {
@@ -2115,6 +2115,7 @@ body.modal-open {
 
 .news-engagement-compact .news-engagement-stat,
 .news-engagement-compact .news-engagement-button {
+  margin: 0;
   min-width: 0;
   min-height: 28px;
   flex: 1 1 0;
@@ -3540,6 +3541,11 @@ body.modal-open {
   .news-public-card .news-card-body,
   .player-public-card .player-card-body {
     padding: 16px 18px 18px;
+  }
+
+  .news-engagement-compact {
+    padding-right: 18px;
+    padding-left: 18px;
   }
 
   .news-public-card .news-card-body h2,
